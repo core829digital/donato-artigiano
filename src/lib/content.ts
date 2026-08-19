@@ -7,10 +7,11 @@ export const site = {
 };
 
 export const navLinks = [
-  { href: "#servizi", label: "Servizi" },
-  { href: "#perche-noi", label: "Perché noi" },
-  { href: "#come-lavoriamo", label: "Come lavoriamo" },
-  { href: "#contatti", label: "Contatti" },
+  { href: "/#servizi", label: "Servizi" },
+  { href: "/configuratore-infissi", label: "Configuratore Infissi" },
+  { href: "/#perche-noi", label: "Perché noi" },
+  { href: "/#come-lavoriamo", label: "Come lavoriamo" },
+  { href: "/#contatti", label: "Contatti" },
 ];
 
 export type ServiceCategory = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { gsap } from "@/lib/gsap";
 import { navLinks, site } from "@/lib/content";
 import { PhoneIcon, MenuIcon, CloseIcon } from "./icons";
@@ -69,24 +70,24 @@ export default function Header() {
       }`}
     >
       <div className="mx-auto w-full px-5 sm:px-8 lg:px-12 xl:px-20 2xl:px-28 h-16 md:h-20 flex items-center justify-between">
-        <a href="#top" className="flex items-baseline gap-2 group">
+        <Link href="/#top" className="flex items-baseline gap-2 group">
           <span className="font-display italic text-lg md:text-xl text-(--color-cream-white) tracking-tight">
             L&apos;Artigiano
           </span>
           <span className="font-display font-semibold text-lg md:text-xl text-(--color-brass-light) tracking-tight">
             Fidato
           </span>
-        </a>
+        </Link>
 
         <nav className="hidden md:flex items-center gap-1 rounded-full bg-white/5 px-1.5 py-1.5 ring-1 ring-white/10 backdrop-blur">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="rounded-full px-4 py-2 text-sm tracking-wide text-(--color-charcoal)/85 hover:bg-white/10 hover:text-(--color-brass-light) transition-colors cursor-pointer"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <a
             href={site.phoneHref}
@@ -122,7 +123,7 @@ export default function Header() {
         className="hidden fixed inset-0 top-16 z-40 flex-col bg-(--color-paper) px-6 py-8 gap-1 md:!hidden"
       >
         {navLinks.map((link) => (
-          <a
+          <Link
             key={link.href}
             data-menu-item
             href={link.href}
@@ -130,7 +131,7 @@ export default function Header() {
             className="text-2xl font-display py-4 border-b border-(--color-line) text-(--color-cream-white) cursor-pointer"
           >
             {link.label}
-          </a>
+          </Link>
         ))}
         <a
           data-menu-item

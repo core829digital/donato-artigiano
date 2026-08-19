@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Window &amp; Door Price Estimator — Prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  /* ============ EMBEDDING NOTE ============
+     In production this whole block would either:
+     (a) sit inside an <iframe src="https://yourdomain.com/widget"> for full style
+         isolation from the host site, or
+     (b) be namespaced under .tw-widget as done here, and loaded via a single
+         <script src=".../widget.js" data-lang="en" data-material="pvc"></script>
+     Everything below is scoped under .tw-widget so it will not leak into,
+     or be affected by, the host page's own CSS.
+  ============================================= */
+
+  .tw-widget, .tw-widget * { box-sizing: border-box; }
+
+  .tw-widget {
+    --bg: #F2EEE6;
+    --panel: #FFFFFF;
+    --panel-2: #F7F4EE;
+    --ink: #18181b;
+    --ink-muted: #6b6558;
+    --line: #E2DACB;
+    --accent: #c9974c;
+    --accent-ink: #18181b;
+    --accent-soft: #F5E9D3;
+    --success: #2A7A4F;
+    --success-soft: #E4F3EA;
+
+    --pvc: #3E7691;
+    --pvc-fill: #DCEAF0;
+    --wood: #9C6B3E;
+    --wood-fill: #F1E4D2;
+    --alu: #6B7378;
+    --alu-fill: #E6E9EA;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+
+    font-family: 'Space Grotesk', -apple-system, 'Segoe UI', sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    padding: 28px;
+    max-width: 1120px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .tw-mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+
+  /* ---------- Header ---------- */
+  .tw-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .tw-brand { display: flex; align-items: center; gap: 12px; }
+  .tw-brand-mark {
+    width: 40px; height: 40px; border-radius: var(--radius-sm);
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px;
+    flex-shrink: 0;
+  }
+  .tw-brand h1 { font-size: 19px; font-weight: 600; margin: 0; line-height: 1.2; }
+  .tw-brand p { font-size: 13px; color: var(--ink-muted); margin: 2px 0 0; }
+
+  .tw-lang { display: flex; gap: 6px; }
+  .tw-lang button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em;
+    padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink-muted); cursor: pointer;
+    transition: all .15s ease;
+  }
+  .tw-lang button:hover { border-color: var(--accent); color: var(--accent); }
+  .tw-lang button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  /* ---------- Material tabs ---------- */
+  .tw-materials { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tw-material-tab {
+    flex: 1 1 160px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border-radius: var(--radius);
+    border: 1.5px solid var(--line); background: var(--panel);
+    cursor: pointer; text-align: left; transition: all .15s ease;
+  }
+  .tw-material-tab:hover { border-color: var(--ink-muted); }
+  .tw-material-tab .swatch { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,.08); }
+  .tw-material-tab .label { font-size: 13.5px; font-weight: 600; }
+  .tw-material-tab .sub { font-size: 11.5px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+  .tw-material-tab[data-active="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .tw-material-tab[data-active="true"] .swatch { box-shadow: 0 0 0 2px var(--accent); }
+
+  /* ---------- Grid ---------- */
+  .tw-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 20px; align-items: start; }
+  @media (max-width: 820px) { .tw-grid { grid-template-columns: 1fr; } }
+
+  .tw-panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .tw-panel + .tw-panel { margin-top: 16px; }
+  .tw-panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-muted); margin: 0 0 16px; font-weight: 600;
+  }
+
+  .tw-field { margin-bottom: 16px; }
+  .tw-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .tw-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .tw-input, .tw-select {
+    width: 100%; padding: 10px 11px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--line); background: var(--panel-2);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; color: var(--ink);
+  }
+  .tw-select { font-family: 'Space Grotesk', sans-serif; }
+  .tw-input:focus, .tw-select:focus {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  .tw-input:disabled, .tw-select:disabled { opacity: .45; cursor: not-allowed; }
+  .tw-hint { font-size: 11.5px; color: var(--ink-muted); margin-top: 5px; }
+
+  .tw-check {
+    display: flex; align-items: center; gap: 9px; padding: 10px 11px;
+    border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--panel-2); cursor: pointer; font-size: 13.5px;
+  }
+  .tw-check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+  /* ---------- Sash cards ---------- */
+  .tw-sash-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+  .tw-sash-card {
+    border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--panel-2); padding: 12px;
+    transition: opacity .15s ease;
+  }
+  .tw-sash-card.tw-sash-card--inactive { opacity: .5; }
+  .tw-sash-card-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .tw-sash-card-title {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; font-weight: 600;
+    color: var(--accent); text-transform: uppercase; letter-spacing: .05em;
+  }
+  .tw-sash-switch {
+    display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
+    color: var(--ink-muted); cursor: pointer; user-select: none;
+  }
+  .tw-sash-switch input { accent-color: var(--success); width: 15px; height: 15px; cursor: pointer; }
+  .tw-sash-card .tw-row { gap: 10px; }
+  .tw-sash-card .tw-field { margin-bottom: 0; }
+  .tw-sash-card label { font-size: 11.5px; color: var(--ink-muted); font-weight: 500; margin-bottom: 4px; }
+
+  details.tw-settings { margin-top: 4px; border-top: 1px dashed var(--line); padding-top: 14px; }
+  details.tw-settings summary {
+    cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent);
+    list-style: none; display: flex; align-items: center; gap: 6px;
+  }
+  details.tw-settings summary::-webkit-details-marker { display: none; }
+  details.tw-settings summary:before { content: "⚙"; }
+  details.tw-settings[open] summary:before { content: "⌄"; }
+  .tw-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 14px; }
+  .tw-settings-grid .tw-field { margin-bottom: 0; }
+  .tw-settings-grid label { font-size: 11.5px; color: var(--ink-muted); font-weight: 500; }
+  .tw-settings-note { font-size: 11.5px; color: var(--ink-muted); margin: 10px 0 0; line-height: 1.5; }
+  .tw-reset-btn {
+    margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--ink-muted);
+    background: none; border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .tw-reset-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  /* ---------- Company details (dealer branding for the PDF offer) ---------- */
+  .tw-company-section { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 14px; }
+  .tw-company-title { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+  .tw-logo-btn {
+    width: 100%; padding: 10px 11px; border-radius: var(--radius-sm);
+    border: 1.5px dashed var(--accent); background: var(--accent-soft);
+    color: var(--accent); font-weight: 700; font-size: 12.5px; letter-spacing: .04em;
+    cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  }
+  .tw-logo-btn:hover { background: var(--accent); color: #fff; }
+  .tw-logo-preview {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--panel-2); font-size: 12px; color: var(--ink-muted);
+  }
+  .tw-logo-preview img { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: #fff; border: 1px solid var(--line); }
+  .tw-logo-preview span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tw-logo-remove {
+    width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--panel);
+    color: var(--ink-muted); font-size: 12px; line-height: 1; cursor: pointer; flex-shrink: 0;
+  }
+  .tw-logo-remove:hover { background: #F3DCD3; color: #B3401E; }
+
+  /* ---------- Diagram ---------- */
+  .tw-diagram-wrap { display: flex; justify-content: center; padding: 6px 0 4px; }
+  .tw-diagram-wrap svg { width: 100%; max-width: 320px; height: auto; }
+  .tw-diagram-wrap svg .tw-sash-hit { cursor: pointer; }
+  .tw-diagram-legend { font-size: 11px; color: var(--ink-muted); text-align: center; margin-top: 4px; }
+
+  .tw-sash-editor {
+    margin-top: 12px; border: 1.5px solid var(--accent); border-radius: var(--radius-sm);
+    background: var(--accent-soft); padding: 12px;
+  }
+  .tw-sash-editor-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .tw-sash-editor-title { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; color: var(--accent); }
+  .tw-sash-editor-close {
+    width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--panel);
+    color: var(--ink-muted); font-size: 13px; line-height: 1; cursor: pointer;
+  }
+  .tw-sash-editor-close:hover { background: var(--ink); color: #fff; }
+  .tw-sash-editor .tw-field { margin-bottom: 10px; }
+  .tw-sash-editor .tw-field:last-child { margin-bottom: 0; }
+  .tw-sash-editor label { font-size: 11.5px; color: var(--ink-muted); font-weight: 500; margin-bottom: 4px; }
+
+  /* ---------- Summary ---------- */
+  .tw-summary-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--line);
+  }
+  .tw-summary-row:last-of-type { border-bottom: none; }
+  .tw-summary-row .k { color: var(--ink-muted); }
+  .tw-summary-row .v { font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+
+  .tw-total-box {
+    margin-top: 14px; padding: 16px; border-radius: var(--radius-sm);
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .tw-total-box .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+  .tw-total-box .amount { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; margin-top: 4px; line-height: 1.1; }
+  .tw-total-box .per-unit { font-size: 12px; opacity: .85; margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* ---------- Lead capture ---------- */
+  .tw-lead { margin-top: 16px; }
+  .tw-lead input { margin-bottom: 8px; }
+  .tw-lead-btn {
+    width: 100%; padding: 11px; border-radius: var(--radius-sm); border: none;
+    background: var(--ink); color: #fff; font-weight: 600; font-size: 13.5px;
+    cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  }
+  .tw-lead-btn:hover { background: #000; }
+  .tw-lead-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .tw-lead-success {
+    display: none; align-items: center; gap: 8px; margin-top: 10px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    background: var(--success-soft); color: var(--success); font-size: 13px; font-weight: 600;
+  }
+  .tw-error { font-size: 12px; color: #B3401E; margin-top: 6px; display: none; }
+
+  /* ---------- Product type toggle ---------- */
+  .tw-type-toggle { display: flex; gap: 8px; }
+  .tw-type-btn {
+    flex: 1; padding: 10px 12px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--line); background: var(--panel-2);
+    cursor: pointer; font-size: 13px; font-weight: 600; text-align: center;
+    color: var(--ink); transition: all .15s ease;
+  }
+  .tw-type-btn:hover { border-color: var(--ink-muted); }
+  .tw-type-btn[data-active="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .tw-threshold-note {
+    margin-top: 8px; font-size: 11.5px; color: var(--accent); font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ---------- Project items list ---------- */
+  .tw-items-list { margin-bottom: 4px; }
+  .tw-item-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px;
+  }
+  .tw-item-row .info { flex: 1; min-width: 0; }
+  .tw-item-row .info .name { font-weight: 600; }
+  .tw-item-row .info .meta { color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+  .tw-item-row .price { font-family: 'IBM Plex Mono', monospace; font-weight: 600; white-space: nowrap; }
+  .tw-item-remove {
+    width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--panel-2);
+    color: var(--ink-muted); font-size: 12px; line-height: 1; cursor: pointer; flex-shrink: 0;
+  }
+  .tw-item-remove:hover { background: #F3DCD3; color: #B3401E; }
+  .tw-items-subtotal {
+    display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600;
+    padding-top: 8px; color: var(--ink-muted);
+  }
+
+  /* ---------- Action buttons (Continue / Finish) ---------- */
+  .tw-action-row { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .tw-btn-secondary {
+    width: 100%; padding: 11px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--accent); background: var(--panel);
+    color: var(--accent); font-weight: 600; font-size: 13.5px;
+    cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  }
+  .tw-btn-secondary:hover { background: var(--accent-soft); }
+  .tw-btn-primary {
+    width: 100%; padding: 11px; border-radius: var(--radius-sm); border: none;
+    background: var(--success); color: #fff; font-weight: 600; font-size: 13.5px;
+    cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  }
+  .tw-btn-primary:hover { background: #1F6640; }
+
+  .tw-finish-choice {
+    margin-top: 10px; border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--panel-2); padding: 14px;
+  }
+  .tw-finish-choice p { margin: 0 0 10px; font-size: 12.5px; color: var(--ink-muted); font-weight: 600; }
+  .tw-finish-choice-btns { display: flex; flex-direction: column; gap: 8px; }
+  .tw-finish-opt {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: var(--radius-sm); border: 1.5px solid var(--line); background: var(--panel);
+    cursor: pointer; font-size: 13px; font-weight: 600; text-align: left;
+  }
+  .tw-finish-opt:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .tw-finish-cancel {
+    margin-top: 8px; background: none; border: none; color: var(--ink-muted);
+    font-size: 12px; text-decoration: underline; cursor: pointer; padding: 0;
+  }
+
+  /* ---------- Printable offer (hidden on screen, shown only when printing) ---------- */
+  #twPrintArea { display: none; }
+  @media print {
+    .tw-widget > *:not(#twPrintArea) { display: none !important; }
+    #twPrintArea { display: block !important; font-family: 'Space Grotesk', sans-serif; color: #1C2426; }
+    #twPrintArea .tw-print-company { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    #twPrintArea .tw-print-logo { max-width: 90px; max-height: 90px; object-fit: contain; }
+    #twPrintArea .tw-print-company-info { font-size: 12px; line-height: 1.5; color: #1C2426; }
+    #twPrintArea h1 { font-size: 20px; margin-bottom: 2px; }
+    #twPrintArea .tw-print-sub { color: #5B6668; font-size: 12px; margin-bottom: 18px; }
+    #twPrintArea .tw-print-items { margin-top: 6px; }
+    #twPrintArea .tw-print-item-card {
+      display: flex; align-items: center; gap: 16px; padding: 12px 0;
+      border-bottom: 1px solid #D6DCDA; page-break-inside: avoid;
+    }
+    #twPrintArea .tw-print-item-diagram { width: 130px; flex-shrink: 0; }
+    #twPrintArea .tw-print-item-diagram svg { width: 100%; height: auto; display: block; }
+    #twPrintArea .tw-print-item-info { flex: 1; }
+    #twPrintArea .tw-print-item-info .name { font-weight: 700; font-size: 13px; }
+    #twPrintArea .tw-print-item-info .meta { font-size: 11.5px; color: #5B6668; margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
+    #twPrintArea .tw-print-item-price { font-weight: 700; font-size: 15px; white-space: nowrap; font-family: 'IBM Plex Mono', monospace; }
+    #twPrintArea .tw-print-item-info .specs { margin-top: 6px; font-size: 11px; color: #1C2426; line-height: 1.6; }
+    #twPrintArea .tw-print-uw-total { margin-top: 14px; padding-top: 10px; border-top: 1px solid #D6DCDA; font-size: 12.5px; font-weight: 700; }
+    #twPrintArea table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+    #twPrintArea th, #twPrintArea td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #D6DCDA; }
+    #twPrintArea tfoot td { font-weight: 700; font-size: 14px; border-top: 2px solid #1C2426; border-bottom: none; }
+    #twPrintArea tfoot .tw-print-vat-row td { font-weight: 500; font-size: 11.5px; color: #5B6668; border-top: none; padding-top: 2px; }
+    #twPrintArea .tw-print-footer { margin-top: 24px; font-size: 11px; color: #5B6668; }
+  }
+
+  .tw-footer { margin-top: 20px; font-size: 11.5px; color: var(--ink-muted); line-height: 1.6; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="tw-widget" id="twWidget">
+
+  <div class="tw-header">
+    <div class="tw-brand">
+      <div class="tw-brand-mark">D</div>
+      <div>
+        <h1 data-t="brandName">Configuratore Infissi — Donato</h1>
+        <p data-t="tagline">Preventivo immediato per PVC, legno e alluminio</p>
+      </div>
+    </div>
+    <div class="tw-lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="it" class="active">IT</button>
+      <button type="button" data-lang="fr">FR</button>
+    </div>
+  </div>
+
+  <div class="tw-materials" id="twMaterials">
+    <button type="button" class="tw-material-tab" data-material="pvc" data-active="true">
+      <span class="swatch" style="background:var(--pvc-fill); border-color:var(--pvc)"></span>
+      <span>
+        <span class="label" data-t="materialPVC">PVC</span><br>
+        <span class="sub" data-t="materialPVCsub">da 180 €/m²</span>
+      </span>
+    </button>
+    <button type="button" class="tw-material-tab" data-material="wood">
+      <span class="swatch" style="background:var(--wood-fill); border-color:var(--wood)"></span>
+      <span>
+        <span class="label" data-t="materialWood">Legno</span><br>
+        <span class="sub" data-t="materialWoodSub">da 320 €/m²</span>
+      </span>
+    </button>
+    <button type="button" class="tw-material-tab" data-material="aluminum">
+      <span class="swatch" style="background:var(--alu-fill); border-color:var(--alu)"></span>
+      <span>
+        <span class="label" data-t="materialAluminum">Alluminio</span><br>
+        <span class="sub" data-t="materialAluminumSub">da 260 €/m²</span>
+      </span>
+    </button>
+  </div>
+
+  <div class="tw-grid">
+
+    <!-- LEFT: FORM -->
+    <div class="tw-panel">
+      <h2 data-t="configTitle">Configuration</h2>
+
+      <div class="tw-field">
+        <label data-t="productTypeLabel">Product type</label>
+        <div class="tw-type-toggle" id="twProductType">
+          <button type="button" class="tw-type-btn" data-type="window" data-active="true" data-t="productTypeWindow">Window</button>
+          <button type="button" class="tw-type-btn" data-type="balconyDoor" data-t="productTypeDoor">Balcony door</button>
+        </div>
+        <div class="tw-threshold-note" id="twThresholdNote" data-t="thresholdNote" style="display:none;">✓ Aluminium threshold included</div>
+      </div>
+
+      <div class="tw-field">
+        <label data-t="qualityLabel">Profile quality</label>
+        <select class="tw-select" id="twQuality"></select>
+      </div>
+
+      <div class="tw-row">
+        <div class="tw-field">
+          <label data-t="widthLabel">Width (mm)</label>
+          <input class="tw-input" type="number" id="twWidth" inputmode="numeric" min="300" max="4000" step="1" value="1200">
+        </div>
+        <div class="tw-field">
+          <label data-t="heightLabel">Height (mm)</label>
+          <input class="tw-input" type="number" id="twHeight" inputmode="numeric" min="300" max="4000" step="1" value="1400">
+        </div>
+      </div>
+      <div class="tw-field">
+        <label data-t="quantityLabel">Quantity</label>
+        <input class="tw-input" type="number" id="twQuantity" inputmode="numeric" min="1" max="50" step="1" value="1" style="max-width: 140px;">
+      </div>
+
+      <div class="tw-field">
+        <label data-t="sashCountLabel">Number of sashes</label>
+        <input class="tw-input" type="number" id="twSashCount" inputmode="numeric" min="1" max="4" step="1" value="2" style="max-width: 140px;">
+        <div class="tw-hint" data-t="sashCountHint">Each sash can have its own opening type and side.</div>
+        <div class="tw-hint" data-t="viewNote" style="margin-top:4px;">"Left"/"Right" are defined viewed from inside the room, looking outward — the standard convention.</div>
+        <div class="tw-hint" id="twSingleSashCapHint" data-t="singleSashCapHint" style="margin-top:4px; display:none; color:var(--accent); font-weight:600;">Single-sash units are capped at 1200×2800mm.</div>
+      </div>
+
+      <div class="tw-field">
+        <div class="tw-sash-cards" id="twSashCards"></div>
+      </div>
+
+      <div class="tw-field">
+        <label data-t="glazingLabel">Glazing</label>
+        <select class="tw-select" id="twGlazing"></select>
+      </div>
+
+      <div class="tw-field">
+        <label data-t="colorLabel">Colour / finish</label>
+        <select class="tw-select" id="twColor"></select>
+      </div>
+
+      <div class="tw-field">
+        <label class="tw-check">
+          <input type="checkbox" id="twScreen">
+          <span data-t="insectScreenLabel">Add insect screen</span>
+        </label>
+      </div>
+
+      <details class="tw-settings" id="twSettingsDetails">
+        <summary data-t="settingsToggle">Pricing settings (dealer use)</summary>
+        <div class="tw-settings-grid" id="twSettingsGrid"></div>
+        <p class="tw-settings-note" data-t="settingsNote">These unit prices drive every calculation on this page. Set your own catalogue prices here — visitors only ever see the totals.</p>
+        <button type="button" class="tw-reset-btn" id="twResetPricing" data-t="settingsReset">Reset to defaults</button>
+
+        <div class="tw-company-section">
+          <div class="tw-company-title" data-t="companyTitle">Company details (printed on the PDF offer)</div>
+          <div class="tw-settings-grid">
+            <div class="tw-field">
+              <label data-t="companyNameLabel">Company name</label>
+              <input class="tw-input" type="text" id="twCompanyName" placeholder="Company name">
+            </div>
+            <div class="tw-field">
+              <label data-t="companyTaxIdLabel">Tax ID (CIF)</label>
+              <input class="tw-input" type="text" id="twCompanyTaxId" placeholder="CIF / VAT number">
+            </div>
+            <div class="tw-field" style="grid-column:1 / -1;">
+              <label data-t="companyAddressLabel">Address</label>
+              <input class="tw-input" type="text" id="twCompanyAddress" placeholder="Address">
+            </div>
+            <div class="tw-field">
+              <label data-t="companyPhoneLabel">Phone number</label>
+              <input class="tw-input" type="text" id="twCompanyPhone" placeholder="Phone number">
+            </div>
+            <div class="tw-field">
+              <label data-t="companyLogoLabel">Logo</label>
+              <button type="button" class="tw-logo-btn" id="twLogoBtn" data-t="companyLogoBtn">LOGO</button>
+              <input type="file" id="twLogoFile" accept=".jpg,.jpeg,.png,.gif,.bmp,image/jpeg,image/png,image/gif,image/bmp" style="display:none;">
+            </div>
+          </div>
+          <div class="tw-logo-preview" id="twLogoPreview" style="display:none;">
+            <img id="twLogoPreviewImg" alt="Logo preview">
+            <span id="twLogoFileName"></span>
+            <button type="button" class="tw-logo-remove" id="twLogoRemove" data-t="companyLogoRemove">×</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- RIGHT: DIAGRAM + SUMMARY -->
+    <div>
+      <div class="tw-panel">
+        <h2 data-t="diagramTitle">Spec drawing</h2>
+        <div class="tw-diagram-legend" data-t="diagramViewLabel" style="margin-bottom:6px;">View: interior → exterior</div>
+        <div class="tw-diagram-wrap" id="twDiagram"></div>
+        <div class="tw-diagram-legend" data-t="diagramLegend">Triangle = swing/tilt side, straight arrow = sliding direction</div>
+        <div class="tw-diagram-legend" data-t="diagramClickHint">Click a sash in the drawing to edit it</div>
+        <div id="twSashEditor"></div>
+      </div>
+
+      <div class="tw-panel">
+        <h2 data-t="summaryTitle">Estimate</h2>
+
+        <div id="twItemsSection" style="display:none;">
+          <div class="tw-summary-row" style="border-bottom:none; padding-bottom:2px;">
+            <span class="k" data-t="projectItemsTitle" style="font-weight:700; color:var(--ink);">Project items</span>
+          </div>
+          <div class="tw-items-list" id="twItemsList"></div>
+          <div class="tw-items-subtotal">
+            <span data-t="itemsSubtotalLabel">Items subtotal</span>
+            <span id="twItemsSubtotal"></span>
+          </div>
+        </div>
+
+        <div class="tw-summary-row"><span class="k" data-t="summaryArea">Area</span><span class="v" id="twArea"></span></div>
+        <div class="tw-summary-row"><span class="k" data-t="summaryPerimeter">Frame perimeter</span><span class="v" id="twPerimeter"></span></div>
+        <div class="tw-summary-row"><span class="k" data-t="summaryMaterialCost">Material &amp; labour</span><span class="v" id="twMaterialCost"></span></div>
+        <div class="tw-summary-row"><span class="k" data-t="summaryProfileCost">Profile / frame</span><span class="v" id="twProfileCost"></span></div>
+        <div class="tw-summary-row"><span class="k" data-t="summaryOptionsCost">Options</span><span class="v" id="twOptionsCost"></span></div>
+
+        <div class="tw-total-box">
+          <div class="label" id="twTotalLabel" data-t="summaryTotal">Total estimate</div>
+          <div class="amount" id="twTotal"></div>
+          <div class="per-unit" id="twTotalExclVat"></div>
+          <div class="per-unit" id="twPerUnit"></div>
+        </div>
+
+        <div class="tw-total-box" id="twGrandTotalBox" style="display:none; margin-top:8px; background:var(--ink);">
+          <div class="label" data-t="grandTotalLabel">Project grand total</div>
+          <div class="amount" id="twGrandTotal"></div>
+          <div class="per-unit" id="twGrandTotalExclVat"></div>
+        </div>
+
+        <div class="tw-action-row">
+          <button type="button" class="tw-btn-secondary" id="twContinueBtn" data-t="continueBtn">+ Add another window / balcony door</button>
+          <button type="button" class="tw-btn-primary" id="twFinishBtn" data-t="finishBtn">✓ Finish &amp; get quote</button>
+        </div>
+
+        <div class="tw-finish-choice" id="twFinishChoice" style="display:none;">
+          <p data-t="finishChoicePrompt">How would you like your final quote?</p>
+          <div class="tw-finish-choice-btns">
+            <button type="button" class="tw-finish-opt" id="twChoiceEmail">📧 <span data-t="finishChoiceEmail">Send by email</span></button>
+            <button type="button" class="tw-finish-opt" id="twChoicePdf">📄 <span data-t="finishChoicePdf">Save as PDF</span></button>
+          </div>
+          <button type="button" class="tw-finish-cancel" id="twChoiceCancel" data-t="finishChoiceCancel">Cancel</button>
+        </div>
+
+        <div class="tw-lead">
+          <input class="tw-input" type="text" id="twLeadName" placeholder="Name">
+          <input class="tw-input" type="email" id="twLeadEmail" placeholder="Email">
+          <div class="tw-error" id="twLeadError" data-t="leadError">Please enter a valid email address.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="twPrintArea"></div>
+
+  <div class="tw-footer" data-t="footerDisclaimer">
+    Estimate for illustration purposes only. Final pricing is confirmed after on-site measurement. Powered by your pricing catalogue — fully editable above.
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     1. TRANSLATIONS
+  ============================================================= */
+  var I18N = {
+    en: {
+      brandName: "Window & Door Estimator",
+      tagline: "Instant pricing for PVC, wood and aluminium joinery",
+      materialPVC: "PVC", materialPVCsub: "from $180/m²",
+      materialWood: "Wood", materialWoodSub: "from $320/m²",
+      materialAluminum: "Aluminium", materialAluminumSub: "from $260/m²",
+      configTitle: "Configuration",
+      qualityLabel: "Profile quality",
+      quality: {
+        pvc: [ ["chamber5","5-chamber profile"], ["chamber7","7-chamber profile (premium)"] ],
+        wood: [ ["pine","Pine"], ["oak","Oak (premium)"] ],
+        aluminum: [ ["standard","Standard aluminium"], ["thermalbreak","Thermal-break aluminium (premium)"] ]
+      },
+      widthLabel: "Width (mm)",
+      heightLabel: "Height (mm)",
+      quantityLabel: "Quantity",
+      sashCountLabel: "Number of sashes",
+      sashCountHint: "Each sash can have its own opening type and side, and can be switched active/inactive.",
+      viewNote: "\"Left\" / \"Right\" are defined viewed from inside the room, looking outward — the standard convention.",
+      singleSashCapHint: "Single-sash units are capped at 1200×2800mm.",
+      sashLabel: "Sash",
+      sashActiveOn: "Active",
+      sashActiveOff: "Inactive",
+      openingTypeLabel: "Opening type",
+      sashTypes: [ ["fix","Fixed"], ["classic","Classic (casement)"], ["tiltturn","Tilt & turn"], ["sliding","Sliding"] ],
+      directionLabel: "Opening side",
+      directions: [ ["left","Left"], ["right","Right"] ],
+      hardwareLabel: "Hardware (handles & hinges)",
+      hardwareBrands: [ ["maco","MACO"], ["roto","ROTO"], ["siegenia","Siegenia"] ],
+      hardwareColorLabel: "Hardware colour",
+      hardwareColors: [ ["white","White"], ["silver","Silver"], ["bronze","Bronze"] ],
+      glazingLabel: "Glazing",
+      glazing: [ ["double","Double glazing"], ["triple","Triple glazing"], ["tripleLowE","Triple + Low-E + argon"] ],
+      colorLabel: "Colour / finish",
+      color: [ ["white","Standard white"], ["ral","RAL colour"], ["woodeffect","Wood-effect foil"] ],
+      insectScreenLabel: "Add insect screen",
+      settingsToggle: "Pricing settings (dealer use)",
+      settingsNote: "These unit prices drive every calculation on this page. Set your own catalogue prices here — visitors only ever see the totals.",
+      settingsReset: "Reset to defaults",
+      settingsBase: "Base price /m²",
+      settingsProfile: "Profile price /ml",
+      settingsSash: "Sash add-on —",
+      settingsHardware: "Hardware add-on (per sash) —",
+      settingsHardwareColor: "Hardware colour add-on (per sash) —",
+      settingsGlazing: "Glazing add-on —",
+      settingsColor: "Colour add-on —",
+      settingsScreen: "Insect screen add-on",
+      settingsThreshold: "Aluminium threshold add-on (balcony door)",
+      settingsVatRate: "VAT rate (%)",
+      settingsDealerEmail: "Dealer email (for quote requests)",
+      companyTitle: "Company details (printed on the PDF offer)",
+      companyNameLabel: "Company name",
+      companyTaxIdLabel: "Tax ID (CIF)",
+      companyAddressLabel: "Address",
+      companyPhoneLabel: "Phone number",
+      companyLogoLabel: "Logo",
+      companyLogoBtn: "LOGO",
+      companyLogoRemove: "Remove",
+      companyLogoTypeError: "Please choose a .jpg, .jpeg, .png, .gif or .bmp image.",
+      companyLogoReadError: "Could not read that image file. Please try another one.",
+      diagramTitle: "Spec drawing",
+      diagramViewLabel: "View: interior → exterior",
+      diagramLegend: "Triangle = swing/tilt side, straight arrow = sliding direction",
+      diagramClickHint: "Click a sash in the drawing to edit it",
+      summaryTitle: "Estimate",
+      summaryArea: "Area",
+      summaryPerimeter: "Frame perimeter",
+      summaryMaterialCost: "Material & labour",
+      summaryProfileCost: "Profile / frame",
+      summaryOptionsCost: "Options",
+      summaryTotal: "Total estimate",
+      perUnit: "per unit",
+      units: "units",
+      productTypeLabel: "Product type",
+      productTypeWindow: "Window",
+      productTypeDoor: "Balcony door",
+      thresholdNote: "✓ Aluminium threshold included",
+      projectItemsTitle: "Project items",
+      itemsSubtotalLabel: "Items subtotal",
+      grandTotalLabel: "Project grand total",
+      exclVatLabel: "excl. VAT",
+      continueBtn: "+ Add another window / balcony door",
+      finishBtn: "✓ Finish & get quote",
+      finishChoicePrompt: "How would you like your final quote?",
+      finishChoiceEmail: "Send by email",
+      finishChoicePdf: "Save as PDF",
+      finishChoiceCancel: "Cancel",
+      printTitle: "Window & Door Quote",
+      printDateLabel: "Date",
+      printCustomerLabel: "Prepared for",
+      printColProduct: "Product",
+      printColMaterial: "Material",
+      printColDimensions: "Dimensions",
+      printColQty: "Qty",
+      printColUnit: "Unit price",
+      printColTotal: "Total",
+      printGrandTotal: "Grand total",
+      printFooter: "Estimate for illustration purposes only. Final pricing is confirmed after on-site measurement.",
+      printCharGlazing: "Glazing",
+      printCharHardware: "Hardware",
+      printUwLabel: "U-value (indicative)",
+      printUwUnit: "W/m²K",
+      printUwTotalLabel: "Overall U-value (indicative, area-weighted)",
+      printUwDisclaimer: "U-values are a simplified estimate for comparison only, not a certified thermal calculation.",
+      mailSubject: "Window & door quote request",
+      mailIntro: "Hello, here is the configuration I put together:",
+      mailGrandTotal: "Grand total",
+      leadButton: "Email me this quote (PDF)",
+      leadError: "Please enter a valid email address.",
+      leadSuccessMsg: "Sent — check your inbox for the full quote.",
+      footerDisclaimer: "Estimate for illustration purposes only. Final pricing is confirmed after on-site measurement. Powered by your pricing catalogue — fully editable above."
+    },
+    it: {
+      brandName: "Configuratore Infissi — Donato",
+      tagline: "Preventivo immediato per PVC, legno e alluminio",
+      materialPVC: "PVC", materialPVCsub: "da 180 €/m²",
+      materialWood: "Legno", materialWoodSub: "da 320 €/m²",
+      materialAluminum: "Alluminio", materialAluminumSub: "da 260 €/m²",
+      configTitle: "Configurazione",
+      qualityLabel: "Qualità profilo",
+      quality: {
+        pvc: [ ["chamber5","Profilo a 5 camere"], ["chamber7","Profilo a 7 camere (premium)"] ],
+        wood: [ ["pine","Pino"], ["oak","Rovere (premium)"] ],
+        aluminum: [ ["standard","Alluminio standard"], ["thermalbreak","Alluminio a taglio termico (premium)"] ]
+      },
+      widthLabel: "Larghezza (mm)",
+      heightLabel: "Altezza (mm)",
+      quantityLabel: "Quantità",
+      sashCountLabel: "Numero di ante",
+      sashCountHint: "Ogni anta può avere un proprio tipo di apertura e lato, e può essere attivata o disattivata.",
+      viewNote: "\"Sinistra\" e \"Destra\" si intendono guardando dall'interno verso l'esterno (convenzione standard).",
+      singleSashCapHint: "Gli infissi a un'anta sono limitati a 1200×2800mm.",
+      sashLabel: "Anta",
+      sashActiveOn: "Attiva",
+      sashActiveOff: "Inattiva",
+      openingTypeLabel: "Tipo di apertura",
+      sashTypes: [ ["fix","Fissa"], ["classic","Classica (a battente)"], ["tiltturn","Anta-ribalta"], ["sliding","Scorrevole"] ],
+      directionLabel: "Lato apertura",
+      directions: [ ["left","Sinistra"], ["right","Destra"] ],
+      hardwareLabel: "Ferramenta (maniglie e cerniere)",
+      hardwareBrands: [ ["maco","MACO"], ["roto","ROTO"], ["siegenia","Siegenia"] ],
+      hardwareColorLabel: "Colore ferramenta",
+      hardwareColors: [ ["white","Bianco"], ["silver","Argento"], ["bronze","Bronzo"] ],
+      glazingLabel: "Vetro",
+      glazing: [ ["double","Doppio vetro"], ["triple","Triplo vetro"], ["tripleLowE","Triplo + basso emissivo + argon"] ],
+      colorLabel: "Colore / finitura",
+      color: [ ["white","Bianco standard"], ["ral","Colore RAL"], ["woodeffect","Pellicola effetto legno"] ],
+      insectScreenLabel: "Aggiungi zanzariera",
+      settingsToggle: "Impostazioni prezzi (uso rivenditore)",
+      settingsNote: "Questi prezzi unitari determinano ogni calcolo in questa pagina. Imposta qui il tuo listino: i visitatori vedranno solo i totali.",
+      settingsReset: "Ripristina valori predefiniti",
+      settingsBase: "Prezzo base /m²",
+      settingsProfile: "Prezzo profilo /ml",
+      settingsSash: "Sovrapprezzo anta —",
+      settingsHardware: "Sovrapprezzo ferramenta (per anta) —",
+      settingsHardwareColor: "Sovrapprezzo colore ferramenta (per anta) —",
+      settingsGlazing: "Sovrapprezzo vetro —",
+      settingsColor: "Sovrapprezzo colore —",
+      settingsScreen: "Sovrapprezzo zanzariera",
+      settingsThreshold: "Sovrapprezzo soglia in alluminio (porta balcone)",
+      settingsVatRate: "Aliquota IVA (%)",
+      settingsDealerEmail: "Email rivenditore (per richieste preventivo)",
+      companyTitle: "Dati aziendali (stampati sul preventivo PDF)",
+      companyNameLabel: "Nome azienda",
+      companyTaxIdLabel: "Partita IVA (CIF)",
+      companyAddressLabel: "Indirizzo",
+      companyPhoneLabel: "Numero di telefono",
+      companyLogoLabel: "Logo",
+      companyLogoBtn: "LOGO",
+      companyLogoRemove: "Rimuovi",
+      companyLogoTypeError: "Scegli un'immagine .jpg, .jpeg, .png, .gif o .bmp.",
+      companyLogoReadError: "Impossibile leggere questo file immagine. Provane un altro.",
+      diagramTitle: "Disegno tecnico",
+      diagramViewLabel: "Vista: interno → esterno",
+      diagramLegend: "Triangolo = lato cerniera/ribalta, freccia dritta = senso di scorrimento",
+      diagramClickHint: "Clicca su un'anta nel disegno per modificarla",
+      summaryTitle: "Preventivo",
+      summaryArea: "Superficie",
+      summaryPerimeter: "Perimetro telaio",
+      summaryMaterialCost: "Materiale e manodopera",
+      summaryProfileCost: "Profilo / telaio",
+      summaryOptionsCost: "Opzioni",
+      summaryTotal: "Totale stimato",
+      perUnit: "a pezzo",
+      units: "pezzi",
+      productTypeLabel: "Tipo di prodotto",
+      productTypeWindow: "Finestra",
+      productTypeDoor: "Porta balcone",
+      thresholdNote: "✓ Soglia in alluminio inclusa",
+      projectItemsTitle: "Articoli del progetto",
+      itemsSubtotalLabel: "Subtotale articoli",
+      grandTotalLabel: "Totale generale progetto",
+      exclVatLabel: "IVA esclusa",
+      continueBtn: "+ Aggiungi un'altra finestra / porta balcone",
+      finishBtn: "✓ Completa e richiedi preventivo",
+      finishChoicePrompt: "Come vuoi ricevere il preventivo finale?",
+      finishChoiceEmail: "Invia via email",
+      finishChoicePdf: "Salva come PDF",
+      finishChoiceCancel: "Annulla",
+      printTitle: "Preventivo Serramenti",
+      printDateLabel: "Data",
+      printCustomerLabel: "Preparato per",
+      printColProduct: "Prodotto",
+      printColMaterial: "Materiale",
+      printColDimensions: "Dimensioni",
+      printColQty: "Qtà",
+      printColUnit: "Prezzo unitario",
+      printColTotal: "Totale",
+      printGrandTotal: "Totale generale",
+      printFooter: "Stima puramente indicativa. Il prezzo definitivo viene confermato dopo il sopralluogo.",
+      printCharGlazing: "Vetro",
+      printCharHardware: "Ferramenta",
+      printUwLabel: "Coefficiente Uw (indicativo)",
+      printUwUnit: "W/m²K",
+      printUwTotalLabel: "Coefficiente Uw complessivo (indicativo, media ponderata per superficie)",
+      printUwDisclaimer: "I coefficienti Uw sono una stima semplificata a scopo comparativo, non un calcolo termico certificato.",
+      mailSubject: "Richiesta preventivo serramenti",
+      mailIntro: "Salve, ecco la configurazione che ho preparato:",
+      mailGrandTotal: "Totale generale",
+      leadButton: "Inviami il preventivo (PDF)",
+      leadError: "Inserisci un indirizzo email valido.",
+      leadSuccessMsg: "Inviato — controlla la tua casella email per il preventivo completo.",
+      footerDisclaimer: "Stima puramente indicativa. Il prezzo definitivo viene confermato dopo il sopralluogo. Basato sul tuo listino prezzi, modificabile qui sopra."
+    },
+    fr: {
+      brandName: "Estimateur de Menuiseries",
+      tagline: "Tarification instantanée pour menuiseries PVC, bois et aluminium",
+      materialPVC: "PVC", materialPVCsub: "à partir de 180 €/m²",
+      materialWood: "Bois", materialWoodSub: "à partir de 320 €/m²",
+      materialAluminum: "Aluminium", materialAluminumSub: "à partir de 260 €/m²",
+      configTitle: "Configuration",
+      qualityLabel: "Qualité du profilé",
+      quality: {
+        pvc: [ ["chamber5","Profilé 5 chambres"], ["chamber7","Profilé 7 chambres (premium)"] ],
+        wood: [ ["pine","Pin"], ["oak","Chêne (premium)"] ],
+        aluminum: [ ["standard","Aluminium standard"], ["thermalbreak","Aluminium à rupture de pont thermique (premium)"] ]
+      },
+      widthLabel: "Largeur (mm)",
+      heightLabel: "Hauteur (mm)",
+      quantityLabel: "Quantité",
+      sashCountLabel: "Nombre de vantaux",
+      sashCountHint: "Chaque vantail peut avoir son propre type d'ouverture et son côté, et peut être activé/désactivé.",
+      viewNote: "« Gauche » et « Droite » s'entendent vue de l'intérieur vers l'extérieur (convention standard).",
+      singleSashCapHint: "Les menuiseries à un seul vantail sont limitées à 1200×2800mm.",
+      sashLabel: "Vantail",
+      sashActiveOn: "Actif",
+      sashActiveOff: "Inactif",
+      openingTypeLabel: "Type d'ouverture",
+      sashTypes: [ ["fix","Fixe"], ["classic","Classique (à la française)"], ["tiltturn","Oscillo-battant"], ["sliding","Coulissant"] ],
+      directionLabel: "Côté d'ouverture",
+      directions: [ ["left","Gauche"], ["right","Droite"] ],
+      hardwareLabel: "Quincaillerie (poignées et charnières)",
+      hardwareBrands: [ ["maco","MACO"], ["roto","ROTO"], ["siegenia","Siegenia"] ],
+      hardwareColorLabel: "Couleur de la quincaillerie",
+      hardwareColors: [ ["white","Blanc"], ["silver","Argenté"], ["bronze","Bronze"] ],
+      glazingLabel: "Vitrage",
+      glazing: [ ["double","Double vitrage"], ["triple","Triple vitrage"], ["tripleLowE","Triple + Low-E + argon"] ],
+      colorLabel: "Couleur / finition",
+      color: [ ["white","Blanc standard"], ["ral","Couleur RAL"], ["woodeffect","Film effet bois"] ],
+      insectScreenLabel: "Ajouter une moustiquaire",
+      settingsToggle: "Paramètres tarifaires (usage revendeur)",
+      settingsNote: "Ces prix unitaires pilotent tous les calculs de cette page. Définissez ici votre propre catalogue de prix — les visiteurs ne voient que les totaux.",
+      settingsReset: "Réinitialiser",
+      settingsBase: "Prix de base /m²",
+      settingsProfile: "Prix profilé /ml",
+      settingsSash: "Supplément vantail —",
+      settingsHardware: "Supplément quincaillerie (par vantail) —",
+      settingsHardwareColor: "Supplément couleur quincaillerie (par vantail) —",
+      settingsGlazing: "Supplément vitrage —",
+      settingsColor: "Supplément couleur —",
+      settingsScreen: "Supplément moustiquaire",
+      settingsThreshold: "Supplément seuil aluminium (porte de balcon)",
+      settingsVatRate: "Taux de TVA (%)",
+      settingsDealerEmail: "Email du revendeur (pour les demandes de devis)",
+      companyTitle: "Coordonnées de l'entreprise (imprimées sur le devis PDF)",
+      companyNameLabel: "Nom de l'entreprise",
+      companyTaxIdLabel: "Numéro de TVA (CIF)",
+      companyAddressLabel: "Adresse",
+      companyPhoneLabel: "Numéro de téléphone",
+      companyLogoLabel: "Logo",
+      companyLogoBtn: "LOGO",
+      companyLogoRemove: "Supprimer",
+      companyLogoTypeError: "Veuillez choisir une image .jpg, .jpeg, .png, .gif ou .bmp.",
+      companyLogoReadError: "Impossible de lire ce fichier image. Essayez-en un autre.",
+      diagramTitle: "Plan technique",
+      diagramViewLabel: "Vue : intérieur → extérieur",
+      diagramLegend: "Triangle = côté charnière/oscillant, flèche droite = sens du coulissement",
+      diagramClickHint: "Cliquez sur un vantail du plan pour le modifier",
+      summaryTitle: "Estimation",
+      summaryArea: "Surface",
+      summaryPerimeter: "Périmètre du cadre",
+      summaryMaterialCost: "Matériau et main-d'œuvre",
+      summaryProfileCost: "Profilé / cadre",
+      summaryOptionsCost: "Options",
+      summaryTotal: "Total estimé",
+      perUnit: "à l'unité",
+      units: "unités",
+      productTypeLabel: "Type de produit",
+      productTypeWindow: "Fenêtre",
+      productTypeDoor: "Porte-fenêtre / balcon",
+      thresholdNote: "✓ Seuil en aluminium inclus",
+      projectItemsTitle: "Articles du projet",
+      itemsSubtotalLabel: "Sous-total des articles",
+      grandTotalLabel: "Total général du projet",
+      exclVatLabel: "HT (hors taxes)",
+      continueBtn: "+ Ajouter une autre fenêtre / porte de balcon",
+      finishBtn: "✓ Terminer et obtenir le devis",
+      finishChoicePrompt: "Comment souhaitez-vous recevoir votre devis final ?",
+      finishChoiceEmail: "Envoyer par email",
+      finishChoicePdf: "Enregistrer en PDF",
+      finishChoiceCancel: "Annuler",
+      printTitle: "Devis Menuiseries",
+      printDateLabel: "Date",
+      printCustomerLabel: "Préparé pour",
+      printColProduct: "Produit",
+      printColMaterial: "Matériau",
+      printColDimensions: "Dimensions",
+      printColQty: "Qté",
+      printColUnit: "Prix unitaire",
+      printColTotal: "Total",
+      printGrandTotal: "Total général",
+      printFooter: "Estimation à titre indicatif uniquement. Le prix définitif est confirmé après métrage sur site.",
+      printCharGlazing: "Vitrage",
+      printCharHardware: "Quincaillerie",
+      printUwLabel: "Coefficient Uw (indicatif)",
+      printUwUnit: "W/m²K",
+      printUwTotalLabel: "Coefficient Uw global (indicatif, moyenne pondérée par surface)",
+      printUwDisclaimer: "Les coefficients Uw sont une estimation simplifiée à titre comparatif, pas un calcul thermique certifié.",
+      mailSubject: "Demande de devis menuiseries",
+      mailIntro: "Bonjour, voici la configuration que j'ai préparée :",
+      mailGrandTotal: "Total général",
+      leadButton: "M'envoyer ce devis (PDF)",
+      leadError: "Veuillez saisir une adresse email valide.",
+      leadSuccessMsg: "Envoyé — consultez votre boîte mail pour le devis complet.",
+      footerDisclaimer: "Estimation à titre indicatif uniquement. Le prix définitif est confirmé après métrage sur site. Basé sur votre catalogue de prix, modifiable ci-dessus."
+    }
+  };
+
+  var LOCALE_CFG = {
+    en: { locale: "en-US", currency: "USD" },
+    it: { locale: "it-IT", currency: "EUR" },
+    fr: { locale: "fr-FR", currency: "EUR" }
+  };
+
+  /* ============================================================
+     2. DEFAULT PRICING (dealer-editable at runtime)
+  ============================================================= */
+  function defaultPricing() {
+    return {
+      materials: {
+        pvc:      { basePerM2: 180, profilePerMl: 28, qualities: { chamber5: 1.0,  chamber7: 1.15 } },
+        wood:     { basePerM2: 320, profilePerMl: 45, qualities: { pine: 1.0,      oak: 1.35 } },
+        aluminum: { basePerM2: 260, profilePerMl: 38, qualities: { standard: 1.0,  thermalbreak: 1.25 } }
+      },
+      sashType: { fix: 0, classic: 35, tiltturn: 65, sliding: 85 },
+      hardware: { maco: 0, roto: 15, siegenia: 25 },
+      hardwareColor: { white: 0, silver: 10, bronze: 20 },
+      glazing: { double: 0, triple: 60, tripleLowE: 95 },
+      color:   { white: 0, ral: 55, woodeffect: 85 },
+      insectScreen: 45,
+      balconyDoorThreshold: 65,
+      vatRate: 22
+    };
+  }
+
+  /* Fresh field values for a single window/door configuration.
+     Used both for the initial state and to reset the form after
+     "Add another window / balcony door". */
+  function defaultConfigFields() {
+    return {
+      productType: "window",   // "window" | "balconyDoor"
+      material: "pvc",
+      quality: { pvc: "chamber5", wood: "pine", aluminum: "standard" },
+      width: 1200,   // mm
+      height: 1400,  // mm
+      quantity: 1,
+      sashes: [
+        { type: "tiltturn", direction: "right", active: true, hardware: "maco", hardwareColor: "white" },
+        { type: "fix", direction: "right", active: true, hardware: "maco", hardwareColor: "white" }
+      ],
+      selectedSash: null,
+      glazing: "double",
+      color: "white",
+      insectScreen: false
+    };
+  }
+
+  function defaultDimsForType(productType) {
+    return productType === "balconyDoor" ? { width: 900, height: 2100 } : { width: 1200, height: 1400 };
+  }
+
+  /* ============================================================
+     3. STATE
+  ============================================================= */
+  var state = Object.assign({
+    lang: "it",
+    items: [],           // saved windows/doors already added to the project
+    dealerEmail: "sales@yourcompany.com",
+    company: { name: "", taxId: "", address: "", phone: "", logoDataUrl: null, logoFileName: "" },
+    pricing: defaultPricing(),
+    finishChoiceOpen: false
+  }, defaultConfigFields());
+
+  var DIM_MAX = 4000;
+  var SINGLE_SASH_MAX_WIDTH = 1200, SINGLE_SASH_MAX_HEIGHT = 2800;
+  var QTY_MIN = 1, QTY_MAX = 50;
+  var SASH_MIN = 1, SASH_MAX = 4;
+
+  function getDimMin(dim) {
+    if (state.productType === "balconyDoor") {
+      return dim === "width" ? 450 : 1700;
+    }
+    return dim === "width" ? 450 : 300;
+  }
+
+  /* A window or a balcony door made of a single sash cannot exceed
+     1200mm width / 2800mm height (structural limit of a one-piece sash),
+     regardless of product type. With 2+ sashes the general DIM_MAX applies. */
+  function getDimMax(dim) {
+    if (state.sashes.length === 1) {
+      return dim === "width" ? SINGLE_SASH_MAX_WIDTH : SINGLE_SASH_MAX_HEIGHT;
+    }
+    return DIM_MAX;
+  }
+
+  /* ============================================================
+     4. HELPERS
+  ============================================================= */
+  function t(key) { return I18N[state.lang][key]; }
+
+  function clamp(n, min, max) {
+    if (!Number.isFinite(n)) return min;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function formatCurrency(value) {
+    var cfg = LOCALE_CFG[state.lang];
+    try {
+      return new Intl.NumberFormat(cfg.locale, { style: "currency", currency: cfg.currency, maximumFractionDigits: 2 }).format(value);
+    } catch (e) {
+      return "$" + value.toFixed(2);
+    }
+  }
+
+  function formatNumber(value, decimals) {
+    var cfg = LOCALE_CFG[state.lang];
+    try {
+      return new Intl.NumberFormat(cfg.locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+    } catch (e) {
+      return value.toFixed(decimals);
+    }
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  function escapeHTML(str) {
+    var d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  /* keep a field's live value while the user is typing in it; only
+     overwrite it from state when it does NOT currently have focus */
+  function syncNumberField(id, value) {
+    var node = el(id);
+    if (document.activeElement !== node) node.value = value;
+  }
+  var syncTextField = syncNumberField;
+
+  /* ============================================================
+     5. CALCULATION
+  ============================================================= */
+  function calculate(src) {
+    src = src || state;
+    var widthM = src.width / 1000;
+    var heightM = src.height / 1000;
+    var areaM2 = widthM * heightM;
+    var perimeterM = 2 * (widthM + heightM);
+
+    var matCfg = state.pricing.materials[src.material];
+    var qualityKey = src.quality[src.material];
+    var qualityMult = matCfg.qualities[qualityKey];
+
+    var materialCost = matCfg.basePerM2 * qualityMult * areaM2;
+    var profileCost = matCfg.profilePerMl * perimeterM;
+
+    var sashCost = 0;
+    var hardwareCost = 0;
+    for (var i = 0; i < src.sashes.length; i++) {
+      var sash = src.sashes[i];
+      if (!sash.active) continue;
+      sashCost += state.pricing.sashType[sash.type];
+      if (sash.type !== "fix") {
+        hardwareCost += state.pricing.hardware[sash.hardware];
+        hardwareCost += state.pricing.hardwareColor[sash.hardwareColor];
+      }
+    }
+
+    var thresholdCost = src.productType === "balconyDoor" ? state.pricing.balconyDoorThreshold : 0;
+
+    var optionsCost =
+      sashCost + hardwareCost + thresholdCost +
+      state.pricing.glazing[src.glazing] +
+      state.pricing.color[src.color] +
+      (src.insectScreen ? state.pricing.insectScreen : 0);
+
+    var unitPrice = materialCost + profileCost + optionsCost;
+    var totalPrice = unitPrice * src.quantity;
+
+    return { areaM2: areaM2, perimeterM: perimeterM, materialCost: materialCost, profileCost: profileCost, optionsCost: optionsCost, unitPrice: unitPrice, totalPrice: totalPrice };
+  }
+
+  /* ============================================================
+     5b. PROJECT ITEMS (multi window/door quote)
+  ============================================================= */
+  function materialLabel(key) {
+    if (key === "pvc") return t("materialPVC");
+    if (key === "wood") return t("materialWood");
+    return t("materialAluminum");
+  }
+
+  function productTypeLabel(key) {
+    return key === "balconyDoor" ? t("productTypeDoor") : t("productTypeWindow");
+  }
+
+  function labelFromList(list, key) {
+    for (var i = 0; i < list.length; i++) { if (list[i][0] === key) return list[i][1]; }
+    return key;
+  }
+
+  /* Most sashes on a window/door share one hardware brand & colour in practice —
+     use the first active, operable (non-fixed) sash as representative. Returns
+     null if every sash is fixed (no operable hardware on the unit). */
+  function findRepresentativeHardware(sashes) {
+    for (var i = 0; i < sashes.length; i++) {
+      var s = sashes[i];
+      if (s.active !== false && s.type !== "fix") return s;
+    }
+    return null;
+  }
+
+  /* ---------- Simplified indicative U-value (thermal transmittance) model ----------
+     This is NOT a certified EN ISO 10077 calculation — it's a simplified, clearly
+     labelled estimate so the offer can show a comparative thermal figure. A real
+     Uw depends on full frame/glass geometry, spacer type, etc. */
+  var U_VALUES = {
+    frameBase: { pvc: 1.3, wood: 1.2, aluminum: 1.6 },       // Uf, W/m²K
+    frameQualityAdjust: {
+      pvc: { chamber5: 0, chamber7: -0.15 },
+      wood: { pine: 0, oak: -0.05 },
+      aluminum: { standard: 0, thermalbreak: -0.5 }
+    },
+    glazingUg: { double: 1.1, triple: 0.6, tripleLowE: 0.5 } // Ug, W/m²K
+  };
+  var GLASS_TO_FRAME_RATIO = 0.7; // typical share of the unit area taken by glass
+
+  function computeUw(it) {
+    var frameU = U_VALUES.frameBase[it.material] + U_VALUES.frameQualityAdjust[it.material][it.quality[it.material]];
+    var glassU = U_VALUES.glazingUg[it.glazing];
+    return GLASS_TO_FRAME_RATIO * glassU + (1 - GLASS_TO_FRAME_RATIO) * frameU;
+  }
+
+  function computeOverallUw(allItems) {
+    var weightedSum = 0, totalArea = 0;
+    for (var i = 0; i < allItems.length; i++) {
+      var it = allItems[i];
+      var areaM2 = (it.width / 1000) * (it.height / 1000) * it.quantity;
+      weightedSum += computeUw(it) * areaM2;
+      totalArea += areaM2;
+    }
+    return totalArea > 0 ? weightedSum / totalArea : 0;
+  }
+
+  function snapshotCurrentItem() {
+    var result = calculate(state);
+    return {
+      productType: state.productType,
+      material: state.material,
+      quality: JSON.parse(JSON.stringify(state.quality)),
+      width: state.width,
+      height: state.height,
+      quantity: state.quantity,
+      sashes: JSON.parse(JSON.stringify(state.sashes)),
+      glazing: state.glazing,
+      color: state.color,
+      insectScreen: state.insectScreen,
+      unitPrice: result.unitPrice,
+      totalPrice: result.totalPrice
+    };
+  }
+
+  function getAllItemsForOutput() {
+    return state.items.concat([snapshotCurrentItem()]);
+  }
+
+  function addAnotherItem() {
+    state.items.push(snapshotCurrentItem());
+    var fresh = defaultConfigFields();
+    for (var key in fresh) { if (fresh.hasOwnProperty(key)) state[key] = fresh[key]; }
+    render();
+  }
+
+  function removeItem(idx) {
+    state.items.splice(idx, 1);
+    render();
+  }
+
+  function buildGmailComposeUrl(allItems, grandTotal) {
+    var lines = [t("mailIntro"), ""];
+    for (var i = 0; i < allItems.length; i++) {
+      var it = allItems[i];
+      lines.push(
+        (i + 1) + ". " + productTypeLabel(it.productType) + " — " + materialLabel(it.material) +
+        " — " + it.width + "×" + it.height + "mm — x" + it.quantity + " — " + formatCurrency(it.totalPrice)
+      );
+    }
+    lines.push("");
+    lines.push(t("mailGrandTotal") + ": " + formatCurrency(grandTotal));
+    var name = el("twLeadName").value.trim();
+    if (name) lines.unshift("");
+    var body = lines.join("\n");
+    var subject = t("mailSubject");
+    // Gmail's web compose endpoint: opens gmail.com in a new tab with the
+    // message pre-filled. The visitor must be signed in to Gmail (or will
+    // be asked to sign in) — this only works for Gmail, not other providers.
+    return "https://mail.google.com/mail/?view=cm&fs=1" +
+      "&to=" + encodeURIComponent(state.dealerEmail) +
+      "&su=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+  }
+
+  function buildPrintItemCardHTML(it, index) {
+    var diagramSvg = buildDiagramSVG({
+      width: it.width,
+      height: it.height,
+      material: it.material,
+      sashes: it.sashes,
+      selected: null,
+      interactive: false
+    });
+    var qtyText = it.quantity > 1 ? " × " + it.quantity : "";
+
+    var qualityText = labelFromList(t("quality")[it.material], it.quality[it.material]);
+    var colorText = labelFromList(t("color"), it.color);
+    var glazingText = labelFromList(t("glazing"), it.glazing);
+    var hw = findRepresentativeHardware(it.sashes);
+
+    var specLines = [];
+    specLines.push(escapeHTML(materialLabel(it.material)) + " — " + escapeHTML(qualityText) + ", " + escapeHTML(colorText));
+    specLines.push(escapeHTML(t("printCharGlazing")) + ": " + escapeHTML(glazingText));
+    if (hw) {
+      var hwBrandText = labelFromList(t("hardwareBrands"), hw.hardware);
+      var hwColorText = labelFromList(t("hardwareColors"), hw.hardwareColor);
+      specLines.push(escapeHTML(t("printCharHardware")) + ": " + escapeHTML(hwBrandText) + " — " + escapeHTML(hwColorText));
+    }
+    var uw = computeUw(it);
+    specLines.push(escapeHTML(t("printUwLabel")) + ": " + formatNumber(uw, 2) + " " + t("printUwUnit"));
+
+    return (
+      "<div class='tw-print-item-card'>" +
+        "<div class='tw-print-item-diagram'>" + diagramSvg + "</div>" +
+        "<div class='tw-print-item-info'>" +
+          "<div class='name'>" + (index + 1) + ". " + escapeHTML(productTypeLabel(it.productType)) + " — " + escapeHTML(materialLabel(it.material)) + "</div>" +
+          "<div class='meta'>" + it.width + " × " + it.height + " mm" + qtyText + "</div>" +
+          "<div class='specs'>" + specLines.map(function (l) { return "<div>" + l + "</div>"; }).join("") + "</div>" +
+        "</div>" +
+        "<div class='tw-print-item-price'>" + formatCurrency(it.totalPrice) + "</div>" +
+      "</div>"
+    );
+  }
+
+  function buildPrintHTML(allItems, grandTotal) {
+    var name = el("twLeadName").value.trim();
+    var email = el("twLeadEmail").value.trim();
+    var dateStr = new Date().toLocaleDateString(LOCALE_CFG[state.lang].locale);
+    var c = state.company;
+
+    var logoHTML = c.logoDataUrl
+      ? "<img class='tw-print-logo' src='" + c.logoDataUrl + "' alt='' />"
+      : "";
+    var companyLines = [];
+    if (c.name) companyLines.push("<strong>" + escapeHTML(c.name) + "</strong>");
+    if (c.address) companyLines.push(escapeHTML(c.address));
+    if (c.phone) companyLines.push(escapeHTML(c.phone));
+    if (c.taxId) companyLines.push(t("companyTaxIdLabel") + ": " + escapeHTML(c.taxId));
+    var companyHeaderHTML = (logoHTML || companyLines.length)
+      ? "<div class='tw-print-company'>" + logoHTML +
+        (companyLines.length ? "<div class='tw-print-company-info'>" + companyLines.join("<br>") + "</div>" : "") +
+        "</div>"
+      : "";
+
+    var rows = "";
+    for (var i = 0; i < allItems.length; i++) {
+      var it = allItems[i];
+      rows += "<tr>" +
+        "<td>" + (i + 1) + ". " + escapeHTML(productTypeLabel(it.productType)) + "</td>" +
+        "<td>" + escapeHTML(materialLabel(it.material)) + "</td>" +
+        "<td>" + it.width + " × " + it.height + " mm</td>" +
+        "<td>" + it.quantity + "</td>" +
+        "<td>" + formatCurrency(it.unitPrice) + "</td>" +
+        "<td>" + formatCurrency(it.totalPrice) + "</td>" +
+        "</tr>";
+    }
+
+    var customerLine = (name || email)
+      ? "<p><strong>" + escapeHTML(t("printCustomerLabel")) + ":</strong> " + escapeHTML(name) + (name && email ? " — " : "") + escapeHTML(email) + "</p>"
+      : "";
+
+    var itemCards = "";
+    for (var ci = 0; ci < allItems.length; ci++) {
+      itemCards += buildPrintItemCardHTML(allItems[ci], ci);
+    }
+
+    return (
+      companyHeaderHTML +
+      "<h1>" + escapeHTML(t("printTitle")) + "</h1>" +
+      "<div class='tw-print-sub'>" + escapeHTML(t("printDateLabel")) + ": " + dateStr + "</div>" +
+      customerLine +
+      "<div class='tw-print-items'>" + itemCards + "</div>" +
+      "<table><thead><tr>" +
+        "<th>" + escapeHTML(t("printColProduct")) + "</th>" +
+        "<th>" + escapeHTML(t("printColMaterial")) + "</th>" +
+        "<th>" + escapeHTML(t("printColDimensions")) + "</th>" +
+        "<th>" + escapeHTML(t("printColQty")) + "</th>" +
+        "<th>" + escapeHTML(t("printColUnit")) + "</th>" +
+        "<th>" + escapeHTML(t("printColTotal")) + "</th>" +
+      "</tr></thead><tbody>" + rows + "</tbody>" +
+      "<tfoot>" +
+        "<tr><td colspan='5'>" + escapeHTML(t("printGrandTotal")) + "</td><td>" + formatCurrency(grandTotal) + "</td></tr>" +
+        "<tr class='tw-print-vat-row'><td colspan='5'>" + escapeHTML(t("exclVatLabel")) + " (VAT " + formatNumber(state.pricing.vatRate, 0) + "%)</td><td>" + formatCurrency(exclVatAmount(grandTotal)) + "</td></tr>" +
+      "</tfoot>" +
+      "</table>" +
+      "<div class='tw-print-uw-total'>" + escapeHTML(t("printUwTotalLabel")) + ": " + formatNumber(computeOverallUw(allItems), 2) + " " + t("printUwUnit") + "</div>" +
+      "<div class='tw-print-footer'>" + escapeHTML(t("printUwDisclaimer")) + "<br>" + escapeHTML(t("printFooter")) + "</div>"
+    );
+  }
+
+  /* ============================================================
+     6. DIAGRAM (SVG)
+  ============================================================= */
+  var MATERIAL_COLORS = {
+    pvc:      { stroke: "#3E7691", fill: "#DCEAF0" },
+    wood:     { stroke: "#9C6B3E", fill: "#F1E4D2" },
+    aluminum: { stroke: "#6B7378", fill: "#E6E9EA" }
+  };
+
+  function buildDiagramSVG(opts) {
+    opts = opts || {};
+    var dWidth = opts.width !== undefined ? opts.width : state.width;
+    var dHeight = opts.height !== undefined ? opts.height : state.height;
+    var dMaterial = opts.material !== undefined ? opts.material : state.material;
+    var dSashes = opts.sashes !== undefined ? opts.sashes : state.sashes;
+    var dSelected = opts.selected !== undefined ? opts.selected : state.selectedSash;
+    var interactive = opts.interactive !== undefined ? opts.interactive : true;
+
+    var boxW = 200, boxH = 150;
+    var originX = 66, originY = 22;
+    var scale = Math.min(boxW / dWidth, boxH / dHeight);
+    var rectW = Math.max(dWidth * scale, 40);
+    var rectH = Math.max(dHeight * scale, 40);
+    var colors = MATERIAL_COLORS[dMaterial];
+
+    var svgW = 280, svgH = originY + rectH + 46;
+    var rectX = originX, rectY = originY;
+    var hLineY = rectY + rectH + 22;
+    var vLineX = rectX - 22;
+
+    var n = dSashes.length;
+    var sashW = rectW / n;
+
+    var parts = [];
+    parts.push('<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dimension drawing">');
+
+    // outer frame
+    parts.push('<rect x="' + rectX + '" y="' + rectY + '" width="' + rectW + '" height="' + rectH + '" rx="3" fill="' + colors.fill + '" stroke="' + colors.stroke + '" stroke-width="4.5"/>');
+
+    for (var i = 0; i < n; i++) {
+      var sx = rectX + i * sashW;
+      var sx2 = sx + sashW;
+      var midY = rectY + rectH / 2;
+
+      // divider between sashes
+      if (i > 0) {
+        parts.push('<line x1="' + sx + '" y1="' + rectY + '" x2="' + sx + '" y2="' + (rectY + rectH) + '" stroke="' + colors.stroke + '" stroke-width="3" opacity="0.75"/>');
+      }
+
+      var sash = dSashes[i];
+      var sashIsActive = sash.active !== false;
+
+      if (!sashIsActive) {
+        // dim overlay + diagonal hatch to mark the sash as inactive
+        parts.push('<rect x="' + sx + '" y="' + rectY + '" width="' + sashW + '" height="' + rectH + '" fill="#FFFFFF" opacity="0.55"/>');
+        parts.push('<line x1="' + (sx + 6) + '" y1="' + (rectY + rectH - 6) + '" x2="' + (sx2 - 6) + '" y2="' + (rectY + 6) + '" stroke="#8A9492" stroke-width="1" opacity="0.7"/>');
+      } else if (sash.type === "classic" || sash.type === "tiltturn") {
+        // hinge-swing symbol: diagonal lines converging on the hinge side
+        var apexX, farX;
+        if (sash.direction === "left") { apexX = sx2 - 6; farX = sx + 6; }
+        else { apexX = sx + 6; farX = sx2 - 6; }
+        parts.push('<line x1="' + farX + '" y1="' + (rectY + 8) + '" x2="' + apexX + '" y2="' + midY + '" stroke="' + colors.stroke + '" stroke-width="2" opacity="0.85"/>');
+        parts.push('<line x1="' + farX + '" y1="' + (rectY + rectH - 8) + '" x2="' + apexX + '" y2="' + midY + '" stroke="' + colors.stroke + '" stroke-width="2" opacity="0.85"/>');
+
+        if (sash.type === "tiltturn") {
+          // small tilt arrow near the bottom, pointing up into the sash
+          var cx = sx + sashW / 2;
+          var by = rectY + rectH - 10;
+          parts.push('<line x1="' + (cx - 9) + '" y1="' + by + '" x2="' + cx + '" y2="' + (by - 10) + '" stroke="' + colors.stroke + '" stroke-width="2.2"/>');
+          parts.push('<line x1="' + (cx + 9) + '" y1="' + by + '" x2="' + cx + '" y2="' + (by - 10) + '" stroke="' + colors.stroke + '" stroke-width="2.2"/>');
+        }
+      } else if (sash.type === "sliding") {
+        // sliding symbol: horizontal shaft with an arrowhead pointing the slide direction,
+        // plus a small track line at the bottom of the sash
+        var arrowY = midY;
+        var padIn = 10;
+        var shaftX1 = sx + padIn, shaftX2 = sx2 - padIn;
+        var tipX = sash.direction === "left" ? shaftX2 : shaftX1;
+        var tailX = sash.direction === "left" ? shaftX1 : shaftX2;
+        var tipDir = sash.direction === "left" ? 1 : -1;
+        parts.push('<line x1="' + tailX + '" y1="' + arrowY + '" x2="' + tipX + '" y2="' + arrowY + '" stroke="' + colors.stroke + '" stroke-width="2.2" opacity="0.9"/>');
+        parts.push('<line x1="' + tipX + '" y1="' + arrowY + '" x2="' + (tipX - tipDir * 7) + '" y2="' + (arrowY - 5) + '" stroke="' + colors.stroke + '" stroke-width="2.2" opacity="0.9"/>');
+        parts.push('<line x1="' + tipX + '" y1="' + arrowY + '" x2="' + (tipX - tipDir * 7) + '" y2="' + (arrowY + 5) + '" stroke="' + colors.stroke + '" stroke-width="2.2" opacity="0.9"/>');
+        parts.push('<line x1="' + (sx + 5) + '" y1="' + (rectY + rectH - 5) + '" x2="' + (sx2 - 5) + '" y2="' + (rectY + rectH - 5) + '" stroke="' + colors.stroke + '" stroke-width="3" opacity="0.65"/>');
+      }
+
+      // selection highlight, drawn on top
+      if (dSelected === i) {
+        parts.push('<rect x="' + (sx + 2) + '" y="' + (rectY + 2) + '" width="' + (sashW - 4) + '" height="' + (rectH - 4) + '" fill="none" stroke="#1E5F74" stroke-width="2" stroke-dasharray="4 3" pointer-events="none"/>');
+      }
+
+      // invisible clickable hit-area covering the whole sash, on top of everything
+      // (only needed for the live editable diagram, not for the printed offer)
+      if (interactive) {
+        parts.push('<rect class="tw-sash-hit" data-index="' + i + '" x="' + sx + '" y="' + rectY + '" width="' + sashW + '" height="' + rectH + '" fill="transparent" pointer-events="all"/>');
+      }
+    }
+
+    // horizontal dimension (width)
+    parts.push('<line x1="' + rectX + '" y1="' + hLineY + '" x2="' + (rectX + rectW) + '" y2="' + hLineY + '" stroke="#8A9492" stroke-width="1"/>');
+    parts.push('<line x1="' + rectX + '" y1="' + (hLineY - 5) + '" x2="' + rectX + '" y2="' + (hLineY + 5) + '" stroke="#8A9492" stroke-width="1"/>');
+    parts.push('<line x1="' + (rectX + rectW) + '" y1="' + (hLineY - 5) + '" x2="' + (rectX + rectW) + '" y2="' + (hLineY + 5) + '" stroke="#8A9492" stroke-width="1"/>');
+    parts.push('<text x="' + (rectX + rectW / 2) + '" y="' + (hLineY + 18) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6668">' + dWidth + ' mm</text>');
+
+    // vertical dimension (height)
+    parts.push('<line x1="' + vLineX + '" y1="' + rectY + '" x2="' + vLineX + '" y2="' + (rectY + rectH) + '" stroke="#8A9492" stroke-width="1"/>');
+    parts.push('<line x1="' + (vLineX - 5) + '" y1="' + rectY + '" x2="' + (vLineX + 5) + '" y2="' + rectY + '" stroke="#8A9492" stroke-width="1"/>');
+    parts.push('<line x1="' + (vLineX - 5) + '" y1="' + (rectY + rectH) + '" x2="' + (vLineX + 5) + '" y2="' + (rectY + rectH) + '" stroke="#8A9492" stroke-width="1"/>');
+    parts.push('<text x="' + (vLineX - 10) + '" y="' + (rectY + rectH / 2) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6668" transform="rotate(-90 ' + (vLineX - 10) + ' ' + (rectY + rectH / 2) + ')">' + dHeight + ' mm</text>');
+
+    parts.push('</svg>');
+    return parts.join("");
+  }
+
+  /* ============================================================
+     7. RENDER — dynamic option lists
+  ============================================================= */
+  function renderQualityOptions() {
+    var select = el("twQuality");
+    select.innerHTML = "";
+    var options = t("quality")[state.material];
+    for (var i = 0; i < options.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = options[i][0];
+      opt.textContent = options[i][1];
+      if (options[i][0] === state.quality[state.material]) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  function renderSelect(id, translationKey, currentValue) {
+    var select = el(id);
+    select.innerHTML = "";
+    var options = t(translationKey);
+    for (var i = 0; i < options.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = options[i][0];
+      opt.textContent = options[i][1];
+      if (options[i][0] === currentValue) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  function sashOptionsHTML(list, current) {
+    var html = "";
+    for (var i = 0; i < list.length; i++) {
+      var sel = list[i][0] === current ? " selected" : "";
+      html += '<option value="' + list[i][0] + '"' + sel + '>' + escapeHTML(list[i][1]) + '</option>';
+    }
+    return html;
+  }
+
+  function sashFieldsHTML(i, sash, isActive) {
+    var typeList = t("sashTypes");
+    var dirList = t("directions");
+    var hwList = t("hardwareBrands");
+    var hwColorList = t("hardwareColors");
+    var dirDisabled = (sash.type === "fix" || !isActive) ? " disabled" : "";
+    var hwDisabled = (sash.type === "fix" || !isActive) ? " disabled" : "";
+    var typeDisabled = isActive ? "" : " disabled";
+    var html = '<div class="tw-row">';
+    html += '<div class="tw-field"><label>' + escapeHTML(t("openingTypeLabel")) + '</label>';
+    html += '<select class="tw-select tw-sash-type" data-index="' + i + '"' + typeDisabled + '>' + sashOptionsHTML(typeList, sash.type) + '</select></div>';
+    html += '<div class="tw-field"><label>' + escapeHTML(t("directionLabel")) + '</label>';
+    html += '<select class="tw-select tw-sash-dir" data-index="' + i + '"' + dirDisabled + '>' + sashOptionsHTML(dirList, sash.direction) + '</select></div>';
+    html += '</div>';
+    html += '<div class="tw-row">';
+    html += '<div class="tw-field"><label>' + escapeHTML(t("hardwareLabel")) + '</label>';
+    html += '<select class="tw-select tw-sash-hardware" data-index="' + i + '"' + hwDisabled + '>' + sashOptionsHTML(hwList, sash.hardware) + '</select></div>';
+    html += '<div class="tw-field"><label>' + escapeHTML(t("hardwareColorLabel")) + '</label>';
+    html += '<select class="tw-select tw-sash-hwcolor" data-index="' + i + '"' + hwDisabled + '>' + sashOptionsHTML(hwColorList, sash.hardwareColor) + '</select></div>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderSashCards() {
+    var container = el("twSashCards");
+    var html = "";
+    for (var i = 0; i < state.sashes.length; i++) {
+      var sash = state.sashes[i];
+      var isActive = sash.active !== false;
+      var cardClass = "tw-sash-card" + (isActive ? "" : " tw-sash-card--inactive");
+      html += '<div class="' + cardClass + '">';
+      html += '<div class="tw-sash-card-head">';
+      html += '<div class="tw-sash-card-title">' + escapeHTML(t("sashLabel")) + ' ' + (i + 1) + '</div>';
+      html += '<label class="tw-sash-switch"><input type="checkbox" class="tw-sash-active" data-index="' + i + '"' + (isActive ? " checked" : "") + '><span>' + escapeHTML(isActive ? t("sashActiveOn") : t("sashActiveOff")) + '</span></label>';
+      html += '</div>';
+      html += sashFieldsHTML(i, sash, isActive);
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function renderSettingsGrid() {
+    var grid = el("twSettingsGrid");
+    grid.innerHTML = "";
+    var matCfg = state.pricing.materials[state.material];
+
+    function field(labelText, value, onInput, fullWidth) {
+      var wrap = document.createElement("div");
+      wrap.className = "tw-field";
+      if (fullWidth) wrap.style.gridColumn = "1 / -1";
+      var lbl = document.createElement("label");
+      lbl.textContent = labelText;
+      var input = document.createElement("input");
+      input.className = "tw-input";
+      input.type = "number";
+      input.min = "0";
+      input.step = "1";
+      input.value = value;
+      input.addEventListener("input", function () {
+        var n = parseFloat(input.value);
+        onInput(Number.isFinite(n) && n >= 0 ? n : 0);
+        renderResultsOnly();
+      });
+      wrap.appendChild(lbl);
+      wrap.appendChild(input);
+      grid.appendChild(wrap);
+    }
+
+    var materialLabelKey = state.material === "pvc" ? "materialPVC" : (state.material === "wood" ? "materialWood" : "materialAluminum");
+    field(t("settingsBase") + " (" + t(materialLabelKey) + ")", matCfg.basePerM2, function (v) { matCfg.basePerM2 = v; });
+    field(t("settingsProfile"), matCfg.profilePerMl, function (v) { matCfg.profilePerMl = v; });
+
+    var sashTypeLabels = t("sashTypes");
+    for (var i = 0; i < sashTypeLabels.length; i++) {
+      (function (key, text) {
+        field(t("settingsSash") + " " + text, state.pricing.sashType[key], function (v) { state.pricing.sashType[key] = v; });
+      })(sashTypeLabels[i][0], sashTypeLabels[i][1]);
+    }
+
+    var hardwareLabels = t("hardwareBrands");
+    for (var h = 0; h < hardwareLabels.length; h++) {
+      (function (key, text) {
+        field(t("settingsHardware") + " " + text, state.pricing.hardware[key], function (v) { state.pricing.hardware[key] = v; });
+      })(hardwareLabels[h][0], hardwareLabels[h][1]);
+    }
+
+    var hardwareColorLabels = t("hardwareColors");
+    for (var hc = 0; hc < hardwareColorLabels.length; hc++) {
+      (function (key, text) {
+        field(t("settingsHardwareColor") + " " + text, state.pricing.hardwareColor[key], function (v) { state.pricing.hardwareColor[key] = v; });
+      })(hardwareColorLabels[hc][0], hardwareColorLabels[hc][1]);
+    }
+
+    var glazingLabels = t("glazing");
+    for (var j = 0; j < glazingLabels.length; j++) {
+      (function (key, text) {
+        field(t("settingsGlazing") + " " + text, state.pricing.glazing[key], function (v) { state.pricing.glazing[key] = v; });
+      })(glazingLabels[j][0], glazingLabels[j][1]);
+    }
+
+    var colorLabels = t("color");
+    for (var k = 0; k < colorLabels.length; k++) {
+      (function (key, text) {
+        field(t("settingsColor") + " " + text, state.pricing.color[key], function (v) { state.pricing.color[key] = v; });
+      })(colorLabels[k][0], colorLabels[k][1]);
+    }
+
+    field(t("settingsScreen"), state.pricing.insectScreen, function (v) { state.pricing.insectScreen = v; }, true);
+    field(t("settingsThreshold"), state.pricing.balconyDoorThreshold, function (v) { state.pricing.balconyDoorThreshold = v; }, true);
+    field(t("settingsVatRate"), state.pricing.vatRate, function (v) { state.pricing.vatRate = v; }, true);
+
+    var emailWrap = document.createElement("div");
+    emailWrap.className = "tw-field";
+    emailWrap.style.gridColumn = "1 / -1";
+    var emailLbl = document.createElement("label");
+    emailLbl.textContent = t("settingsDealerEmail");
+    var emailInput = document.createElement("input");
+    emailInput.className = "tw-input";
+    emailInput.type = "email";
+    emailInput.value = state.dealerEmail;
+    emailInput.addEventListener("input", function () { state.dealerEmail = emailInput.value.trim(); });
+    emailWrap.appendChild(emailLbl);
+    emailWrap.appendChild(emailInput);
+    grid.appendChild(emailWrap);
+  }
+
+  /* ============================================================
+     8. RENDER
+  ============================================================= */
+  function applyStaticTranslations() {
+    var nodes = document.querySelectorAll("[data-t]");
+    for (var i = 0; i < nodes.length; i++) {
+      var key = nodes[i].getAttribute("data-t");
+      var val = I18N[state.lang][key];
+      if (typeof val === "string") nodes[i].textContent = val;
+    }
+    el("twLeadName").placeholder = state.lang === "it" ? "Nome" : (state.lang === "fr" ? "Nom" : "Name");
+    el("twLeadEmail").placeholder = "Email";
+    document.documentElement.lang = state.lang;
+  }
+
+  /* Cheap re-render used while typing in pricing-settings fields:
+     recompute + repaint numbers only, don't touch focused inputs */
+  function renderSashEditor() {
+    var container = el("twSashEditor");
+    var idx = state.selectedSash;
+    if (idx === null || !state.sashes[idx]) {
+      container.innerHTML = "";
+      return;
+    }
+    var sash = state.sashes[idx];
+    var isActive = sash.active !== false;
+    var html = '<div class="tw-sash-editor">';
+    html += '<div class="tw-sash-editor-head">';
+    html += '<div class="tw-sash-editor-title">' + escapeHTML(t("sashLabel")) + ' ' + (idx + 1) + '</div>';
+    html += '<button type="button" class="tw-sash-editor-close" id="twSashEditorClose" aria-label="Close">×</button>';
+    html += '</div>';
+    html += sashFieldsHTML(idx, sash, isActive);
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderItemsList() {
+    var section = el("twItemsSection");
+    var list = el("twItemsList");
+    if (state.items.length === 0) {
+      section.style.display = "none";
+      list.innerHTML = "";
+      el("twGrandTotalBox").style.display = "none";
+      return;
+    }
+    section.style.display = "block";
+    var html = "";
+    var subtotal = 0;
+    for (var i = 0; i < state.items.length; i++) {
+      var it = state.items[i];
+      subtotal += it.totalPrice;
+      html += '<div class="tw-item-row">';
+      html += '<div class="info"><div class="name">' + (i + 1) + '. ' + escapeHTML(productTypeLabel(it.productType)) + ' — ' + escapeHTML(materialLabel(it.material)) + '</div>';
+      html += '<div class="meta">' + it.width + '×' + it.height + 'mm · ×' + it.quantity + '</div></div>';
+      html += '<div class="price">' + formatCurrency(it.totalPrice) + '</div>';
+      html += '<button type="button" class="tw-item-remove" data-index="' + i + '" aria-label="Remove">×</button>';
+      html += '</div>';
+    }
+    list.innerHTML = html;
+    el("twItemsSubtotal").textContent = formatCurrency(subtotal);
+    el("twGrandTotalBox").style.display = "block";
+  }
+
+  function exclVatAmount(grossAmount) {
+    var rate = state.pricing.vatRate || 0;
+    return grossAmount / (1 + rate / 100);
+  }
+
+  function exclVatText(grossAmount) {
+    return t("exclVatLabel") + ": " + formatCurrency(exclVatAmount(grossAmount)) + " (VAT " + formatNumber(state.pricing.vatRate, 0) + "%)";
+  }
+
+  function renderResultsOnly() {
+    el("twDiagram").innerHTML = buildDiagramSVG();
+    renderSashEditor();
+    renderItemsList();
+
+    var result = calculate();
+    el("twArea").textContent = formatNumber(result.areaM2, 2) + " m²";
+    el("twPerimeter").textContent = formatNumber(result.perimeterM, 2) + " m";
+    el("twMaterialCost").textContent = formatCurrency(result.materialCost);
+    el("twProfileCost").textContent = formatCurrency(result.profileCost);
+    el("twOptionsCost").textContent = formatCurrency(result.optionsCost);
+    el("twTotal").textContent = formatCurrency(result.totalPrice);
+    el("twTotalExclVat").textContent = exclVatText(result.totalPrice);
+    el("twPerUnit").textContent = state.quantity > 1
+      ? formatCurrency(result.unitPrice) + " " + t("perUnit") + " · " + state.quantity + " " + t("units")
+      : t("perUnit");
+
+    if (state.items.length > 0) {
+      var grand = state.items.reduce(function (sum, it) { return sum + it.totalPrice; }, 0) + result.totalPrice;
+      el("twGrandTotal").textContent = formatCurrency(grand);
+      el("twGrandTotalExclVat").textContent = exclVatText(grand);
+    }
+  }
+
+  function render(fullRebuild) {
+    var langButtons = document.querySelectorAll(".tw-lang button");
+    for (var i = 0; i < langButtons.length; i++) {
+      langButtons[i].classList.toggle("active", langButtons[i].getAttribute("data-lang") === state.lang);
+    }
+
+    var matTabs = document.querySelectorAll(".tw-material-tab");
+    for (var m = 0; m < matTabs.length; m++) {
+      matTabs[m].setAttribute("data-active", matTabs[m].getAttribute("data-material") === state.material ? "true" : "false");
+    }
+
+    var typeBtns = document.querySelectorAll(".tw-type-btn");
+    for (var tb = 0; tb < typeBtns.length; tb++) {
+      typeBtns[tb].setAttribute("data-active", typeBtns[tb].getAttribute("data-type") === state.productType ? "true" : "false");
+    }
+    el("twThresholdNote").style.display = state.productType === "balconyDoor" ? "flex" : "none";
+
+    applyStaticTranslations();
+    renderQualityOptions();
+    renderSashCards();
+    renderSelect("twGlazing", "glazing", state.glazing);
+    renderSelect("twColor", "color", state.color);
+    renderSettingsGrid();
+
+    el("twWidth").min = getDimMin("width");
+    el("twWidth").max = getDimMax("width");
+    el("twHeight").min = getDimMin("height");
+    el("twHeight").max = getDimMax("height");
+    el("twSingleSashCapHint").style.display = state.sashes.length === 1 ? "block" : "none";
+    syncNumberField("twWidth", state.width);
+    syncNumberField("twHeight", state.height);
+    syncNumberField("twQuantity", state.quantity);
+    syncNumberField("twSashCount", state.sashes.length);
+    el("twScreen").checked = state.insectScreen;
+
+    syncTextField("twCompanyName", state.company.name);
+    syncTextField("twCompanyTaxId", state.company.taxId);
+    syncTextField("twCompanyAddress", state.company.address);
+    syncTextField("twCompanyPhone", state.company.phone);
+    if (state.company.logoDataUrl) {
+      el("twLogoPreview").style.display = "flex";
+      el("twLogoPreviewImg").src = state.company.logoDataUrl;
+      el("twLogoFileName").textContent = state.company.logoFileName;
+    } else {
+      el("twLogoPreview").style.display = "none";
+    }
+
+    el("twFinishChoice").style.display = state.finishChoiceOpen ? "block" : "none";
+
+    renderResultsOnly();
+  }
+
+  /* ============================================================
+     9. EVENTS
+  ============================================================= */
+  function bindEvents() {
+    document.querySelectorAll(".tw-lang button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.lang = btn.getAttribute("data-lang");
+        render();
+      });
+    });
+
+    document.querySelectorAll(".tw-material-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        state.material = tab.getAttribute("data-material");
+        render();
+      });
+    });
+
+    document.querySelectorAll(".tw-type-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.productType = btn.getAttribute("data-type");
+        var d = defaultDimsForType(state.productType);
+        state.width = d.width;
+        state.height = d.height;
+        render();
+      });
+    });
+
+    el("twQuality").addEventListener("change", function (e) {
+      state.quality[state.material] = e.target.value;
+      render();
+    });
+
+    // Width / height: update live on every keystroke (no mid-typing clamp),
+    // snap to the valid range only once the field loses focus.
+    el("twWidth").addEventListener("input", function (e) {
+      var n = parseFloat(e.target.value);
+      if (Number.isFinite(n) && n > 0) { state.width = n; renderResultsOnly(); }
+    });
+    el("twWidth").addEventListener("change", function (e) {
+      state.width = clamp(parseFloat(e.target.value), getDimMin("width"), getDimMax("width"));
+      render();
+    });
+
+    el("twHeight").addEventListener("input", function (e) {
+      var n = parseFloat(e.target.value);
+      if (Number.isFinite(n) && n > 0) { state.height = n; renderResultsOnly(); }
+    });
+    el("twHeight").addEventListener("change", function (e) {
+      state.height = clamp(parseFloat(e.target.value), getDimMin("height"), getDimMax("height"));
+      render();
+    });
+
+    el("twQuantity").addEventListener("input", function (e) {
+      var n = parseFloat(e.target.value);
+      if (Number.isFinite(n) && n > 0) { state.quantity = Math.round(n); renderResultsOnly(); }
+    });
+    el("twQuantity").addEventListener("change", function (e) {
+      state.quantity = clamp(Math.round(parseFloat(e.target.value)), QTY_MIN, QTY_MAX);
+      render();
+    });
+
+    el("twSashCount").addEventListener("change", function (e) {
+      var n = clamp(Math.round(parseFloat(e.target.value)), SASH_MIN, SASH_MAX);
+      var current = state.sashes.length;
+      if (n > current) {
+        for (var i = current; i < n; i++) {
+          state.sashes.push({ type: "tiltturn", direction: i % 2 === 0 ? "right" : "left", active: true, hardware: "maco", hardwareColor: "white" });
+        }
+      } else if (n < current) {
+        state.sashes = state.sashes.slice(0, n);
+        if (state.selectedSash !== null && state.selectedSash >= n) state.selectedSash = null;
+      }
+      // a single-sash window/door is capped at 1200x2800mm — re-clamp if needed
+      if (n === 1) {
+        state.width = clamp(state.width, getDimMin("width"), SINGLE_SASH_MAX_WIDTH);
+        state.height = clamp(state.height, getDimMin("height"), SINGLE_SASH_MAX_HEIGHT);
+      }
+      render();
+    });
+
+    function handleSashFieldChange(target) {
+      var idxAttr = target.getAttribute("data-index");
+      if (idxAttr === null) return false;
+      var idx = parseInt(idxAttr, 10);
+      if (!state.sashes[idx]) return false;
+      if (target.classList.contains("tw-sash-type")) {
+        state.sashes[idx].type = target.value;
+      } else if (target.classList.contains("tw-sash-dir")) {
+        state.sashes[idx].direction = target.value;
+      } else if (target.classList.contains("tw-sash-hardware")) {
+        state.sashes[idx].hardware = target.value;
+      } else if (target.classList.contains("tw-sash-hwcolor")) {
+        state.sashes[idx].hardwareColor = target.value;
+      } else if (target.classList.contains("tw-sash-active")) {
+        state.sashes[idx].active = target.checked;
+      } else {
+        return false;
+      }
+      return true;
+    }
+
+    el("twSashCards").addEventListener("change", function (e) {
+      if (handleSashFieldChange(e.target)) render();
+    });
+
+    el("twSashEditor").addEventListener("change", function (e) {
+      if (handleSashFieldChange(e.target)) render();
+    });
+
+    el("twSashEditor").addEventListener("click", function (e) {
+      if (e.target && e.target.id === "twSashEditorClose") {
+        state.selectedSash = null;
+        render();
+      }
+    });
+
+    el("twDiagram").addEventListener("click", function (e) {
+      var target = e.target;
+      if (!target.classList || !target.classList.contains("tw-sash-hit")) return;
+      var idx = parseInt(target.getAttribute("data-index"), 10);
+      state.selectedSash = (state.selectedSash === idx) ? null : idx;
+      render();
+    });
+
+    el("twGlazing").addEventListener("change", function (e) {
+      state.glazing = e.target.value;
+      render();
+    });
+    el("twColor").addEventListener("change", function (e) {
+      state.color = e.target.value;
+      render();
+    });
+    el("twScreen").addEventListener("change", function (e) {
+      state.insectScreen = e.target.checked;
+      render();
+    });
+
+    el("twResetPricing").addEventListener("click", function () {
+      state.pricing = defaultPricing();
+      render();
+    });
+
+    el("twCompanyName").addEventListener("input", function (e) { state.company.name = e.target.value; });
+    el("twCompanyTaxId").addEventListener("input", function (e) { state.company.taxId = e.target.value; });
+    el("twCompanyAddress").addEventListener("input", function (e) { state.company.address = e.target.value; });
+    el("twCompanyPhone").addEventListener("input", function (e) { state.company.phone = e.target.value; });
+
+    var ALLOWED_LOGO_EXT = ["jpg", "jpeg", "png", "gif", "bmp"];
+    var ALLOWED_LOGO_MIME = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/x-ms-bmp"];
+
+    el("twLogoBtn").addEventListener("click", function () {
+      el("twLogoFile").click();
+    });
+
+    el("twLogoFile").addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var ext = (file.name.split(".").pop() || "").toLowerCase();
+      var mimeOk = ALLOWED_LOGO_MIME.indexOf(file.type) !== -1;
+      var extOk = ALLOWED_LOGO_EXT.indexOf(ext) !== -1;
+      if (!mimeOk && !extOk) {
+        window.alert(t("companyLogoTypeError"));
+        e.target.value = "";
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        state.company.logoDataUrl = reader.result;
+        state.company.logoFileName = file.name;
+        render();
+      };
+      reader.onerror = function () {
+        window.alert(t("companyLogoReadError"));
+      };
+      reader.readAsDataURL(file);
+    });
+
+    el("twLogoRemove").addEventListener("click", function () {
+      state.company.logoDataUrl = null;
+      state.company.logoFileName = "";
+      el("twLogoFile").value = "";
+      render();
+    });
+
+    el("twContinueBtn").addEventListener("click", function () {
+      addAnotherItem();
+    });
+
+    el("twItemsList").addEventListener("click", function (e) {
+      var target = e.target;
+      if (target.classList && target.classList.contains("tw-item-remove")) {
+        removeItem(parseInt(target.getAttribute("data-index"), 10));
+      }
+    });
+
+    el("twFinishBtn").addEventListener("click", function () {
+      state.finishChoiceOpen = true;
+      render();
+    });
+
+    el("twChoiceCancel").addEventListener("click", function () {
+      state.finishChoiceOpen = false;
+      render();
+    });
+
+    el("twChoiceEmail").addEventListener("click", function () {
+      var allItems = getAllItemsForOutput();
+      var grand = allItems.reduce(function (sum, it) { return sum + it.totalPrice; }, 0);
+      window.open(buildGmailComposeUrl(allItems, grand), "_blank");
+      state.finishChoiceOpen = false;
+      render();
+      // In production: also POST {name, email, items: allItems} to your CRM here.
+    });
+
+    el("twChoicePdf").addEventListener("click", function () {
+      var allItems = getAllItemsForOutput();
+      var grand = allItems.reduce(function (sum, it) { return sum + it.totalPrice; }, 0);
+      el("twPrintArea").innerHTML = buildPrintHTML(allItems, grand);
+      state.finishChoiceOpen = false;
+      render();
+
+      // Use a meaningful document title so the browser's print/save dialog
+      // suggests a sensible PDF filename (e.g. "Quote_2026-08-04"), then
+      // restore the original tab title afterwards.
+      var originalTitle = document.title;
+      var dateForFile = new Date().toISOString().slice(0, 10);
+      document.title = "Quote_" + dateForFile;
+      var restoreTitle = function () { document.title = originalTitle; };
+      window.addEventListener("afterprint", restoreTitle, { once: true });
+
+      // The browser's native print dialog lets the visitor pick "Save as PDF"
+      // (or "Microsoft Print to PDF") and choose a folder (e.g. Documents) —
+      // a real file-system save from inside a web page isn't possible for
+      // security reasons, so the browser's own dialog is the closest, safest
+      // equivalent.
+      window.setTimeout(function () {
+        window.print();
+        // Fallback restore in case the browser doesn't fire "afterprint"
+        // (some older/mobile browsers don't).
+        window.setTimeout(restoreTitle, 1000);
+      }, 50);
+    });
+  }
+
+  /* ============================================================
+     10. INIT
+  ============================================================= */
+  bindEvents();
+  render();
+
+})();
+</script>
+</body>
+</html>
