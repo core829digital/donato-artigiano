@@ -71,7 +71,7 @@ export default function ConfiguratoreInfissiPage() {
         </section>
 
         <section className="bg-(--color-paper) py-12 md:py-16">
-          <div className="mx-auto w-full px-5 sm:px-8 lg:px-12 xl:px-20 2xl:px-28">
+          <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10">
             <Reveal>
               <div className="mb-6 flex items-start gap-3 rounded-xl bg-(--color-card) border border-(--color-line) px-5 py-4 text-sm text-(--color-slate)">
                 <ClipboardIcon width={18} height={18} className="shrink-0 mt-0.5 text-(--color-brass-light)" />
