@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="31" fill="#09090b" stroke="#c9974c" stroke-width="1.5" />
+  <text
+    x="32"
+    y="43"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-style="italic"
+    font-size="34"
+    fill="#e8c17a"
+  >D</text>
+</svg>
