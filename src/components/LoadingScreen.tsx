@@ -65,12 +65,11 @@ export default function LoadingScreen() {
           <rect x="4" y="4" width="80" height="80" rx="18" className="loader-trace-flow" />
           <text
             x="44"
-            y="57"
+            y="60"
             textAnchor="middle"
-            fontFamily="Georgia, 'Times New Roman', serif"
-            fontStyle="italic"
-            fontSize="34"
+            fontSize="48"
             fill="var(--color-brass-light)"
+            className="loader-d"
           >
             D
           </text>
