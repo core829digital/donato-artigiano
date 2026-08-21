@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Manrope } from "next/font/google";
+import { Instrument_Serif, Manrope, Mrs_Saint_Delafield } from "next/font/google";
 import "./globals.css";
 import SmoothScrollProvider from "@/components/SmoothScrollProvider";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -15,6 +15,12 @@ const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+const saintDelafield = Mrs_Saint_Delafield({
+  variable: "--font-script-raw",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 const siteUrl = "https://artigianofidato.it";
@@ -57,7 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="it"
-      className={`${instrumentSerif.variable} ${manrope.variable} h-full antialiased`}
+      className={`${instrumentSerif.variable} ${manrope.variable} ${saintDelafield.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-(--color-paper) text-(--color-charcoal)">
         <LoadingScreen />

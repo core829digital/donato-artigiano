@@ -70,12 +70,20 @@ export default function Header() {
       }`}
     >
       <div className="mx-auto w-full px-5 sm:px-8 lg:px-12 xl:px-20 2xl:px-28 h-16 md:h-20 flex items-center justify-between">
-        <Link href="/#top" className="flex items-baseline gap-2 group">
-          <span className="font-display italic text-lg md:text-xl text-(--color-cream-white) tracking-tight">
-            L&apos;Artigiano
+        <Link href="/#top" className="flex items-center gap-2.5 group">
+          <span
+            aria-hidden
+            className="font-script text-4xl md:text-5xl leading-none text-(--color-brass-light) -mb-1 group-hover:text-(--color-brass) transition-colors"
+          >
+            D
           </span>
-          <span className="font-display font-semibold text-lg md:text-xl text-(--color-brass-light) tracking-tight">
-            Fidato
+          <span className="flex items-baseline gap-2">
+            <span className="font-display italic text-lg md:text-xl text-(--color-cream-white) tracking-tight">
+              L&apos;Artigiano
+            </span>
+            <span className="font-display font-semibold text-lg md:text-xl text-(--color-brass-light) tracking-tight">
+              Fidato
+            </span>
           </span>
         </Link>
 

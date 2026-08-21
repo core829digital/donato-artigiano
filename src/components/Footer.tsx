@@ -6,7 +6,10 @@ export default function Footer() {
     <footer className="bg-(--color-paper-2) border-t border-(--color-line) pb-[76px] md:pb-0">
       <div className="mx-auto w-full px-5 sm:px-8 lg:px-12 xl:px-20 2xl:px-28 py-10">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="font-display italic text-(--color-cream-white) text-lg">
+          <p className="flex items-center gap-2 font-display italic text-(--color-cream-white) text-lg">
+            <span aria-hidden className="font-script text-3xl leading-none text-(--color-brass-light) -mb-1">
+              D
+            </span>
             L&apos;Artigiano Fidato
           </p>
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-(--color-slate)">

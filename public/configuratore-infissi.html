@@ -20,17 +20,20 @@
   .tw-widget, .tw-widget * { box-sizing: border-box; }
 
   .tw-widget {
-    --bg: #F2EEE6;
-    --panel: #FFFFFF;
-    --panel-2: #F7F4EE;
-    --ink: #18181b;
-    --ink-muted: #6b6558;
-    --line: #E2DACB;
+    --bg: #09090b;
+    --panel: #18181b;
+    --panel-2: #202024;
+    --ink: #fafafa;
+    --ink-muted: #a1a1aa;
+    --line: #3f3f46;
     --accent: #c9974c;
     --accent-ink: #18181b;
-    --accent-soft: #F5E9D3;
-    --success: #2A7A4F;
-    --success-soft: #E4F3EA;
+    --accent-soft: rgba(201, 151, 76, 0.16);
+    --success: #34a868;
+    --success-soft: rgba(52, 168, 104, 0.16);
+    --danger: #e2775a;
+    --danger-soft: rgba(226, 119, 90, 0.16);
+    --solid-dark: #000000;
 
     --pvc: #3E7691;
     --pvc-fill: #DCEAF0;
@@ -51,7 +54,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  html, body { margin: 0; background: #F2EEE6; }
+  html, body { margin: 0; background: #09090b; }
 
   .tw-mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
 
@@ -96,7 +99,7 @@
     cursor: pointer; text-align: left; transition: all .15s ease;
   }
   .tw-material-tab:hover { border-color: var(--ink-muted); }
-  .tw-material-tab .swatch { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,.08); }
+  .tw-material-tab .swatch { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,.12); }
   .tw-material-tab .label { font-size: 13.5px; font-weight: 600; }
   .tw-material-tab .sub { font-size: 11.5px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
   .tw-material-tab[data-active="true"] { border-color: var(--accent); background: var(--accent-soft); }
@@ -200,7 +203,7 @@
     width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--panel);
     color: var(--ink-muted); font-size: 12px; line-height: 1; cursor: pointer; flex-shrink: 0;
   }
-  .tw-logo-remove:hover { background: #F3DCD3; color: #B3401E; }
+  .tw-logo-remove:hover { background: var(--danger-soft); color: var(--danger); }
 
   /* ---------- Diagram ---------- */
   .tw-diagram-wrap { display: flex; justify-content: center; padding: 6px 0 4px; }
@@ -255,7 +258,7 @@
     padding: 10px 12px; border-radius: var(--radius-sm);
     background: var(--success-soft); color: var(--success); font-size: 13px; font-weight: 600;
   }
-  .tw-error { font-size: 12px; color: #B3401E; margin-top: 6px; display: none; }
+  .tw-error { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
 
   /* ---------- Product type toggle ---------- */
   .tw-type-toggle { display: flex; gap: 8px; }
@@ -286,7 +289,7 @@
     width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--panel-2);
     color: var(--ink-muted); font-size: 12px; line-height: 1; cursor: pointer; flex-shrink: 0;
   }
-  .tw-item-remove:hover { background: #F3DCD3; color: #B3401E; }
+  .tw-item-remove:hover { background: var(--danger-soft); color: var(--danger); }
   .tw-items-subtotal {
     display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600;
     padding-top: 8px; color: var(--ink-muted);
@@ -1380,7 +1383,7 @@
       if (!sashIsActive) {
         // dim overlay + diagonal hatch to mark the sash as inactive
         parts.push('<rect x="' + sx + '" y="' + rectY + '" width="' + sashW + '" height="' + rectH + '" fill="#FFFFFF" opacity="0.55"/>');
-        parts.push('<line x1="' + (sx + 6) + '" y1="' + (rectY + rectH - 6) + '" x2="' + (sx2 - 6) + '" y2="' + (rectY + 6) + '" stroke="#8A9492" stroke-width="1" opacity="0.7"/>');
+        parts.push('<line x1="' + (sx + 6) + '" y1="' + (rectY + rectH - 6) + '" x2="' + (sx2 - 6) + '" y2="' + (rectY + 6) + '" stroke="#9BA3A6" stroke-width="1" opacity="0.7"/>');
       } else if (sash.type === "classic" || sash.type === "tiltturn") {
         // hinge-swing symbol: diagonal lines converging on the hinge side
         var apexX, farX;
@@ -1413,7 +1416,7 @@
 
       // selection highlight, drawn on top
       if (dSelected === i) {
-        parts.push('<rect x="' + (sx + 2) + '" y="' + (rectY + 2) + '" width="' + (sashW - 4) + '" height="' + (rectH - 4) + '" fill="none" stroke="#1E5F74" stroke-width="2" stroke-dasharray="4 3" pointer-events="none"/>');
+        parts.push('<rect x="' + (sx + 2) + '" y="' + (rectY + 2) + '" width="' + (sashW - 4) + '" height="' + (rectH - 4) + '" fill="none" stroke="#c9974c" stroke-width="2" stroke-dasharray="4 3" pointer-events="none"/>');
       }
 
       // invisible clickable hit-area covering the whole sash, on top of everything
@@ -1424,16 +1427,16 @@
     }
 
     // horizontal dimension (width)
-    parts.push('<line x1="' + rectX + '" y1="' + hLineY + '" x2="' + (rectX + rectW) + '" y2="' + hLineY + '" stroke="#8A9492" stroke-width="1"/>');
-    parts.push('<line x1="' + rectX + '" y1="' + (hLineY - 5) + '" x2="' + rectX + '" y2="' + (hLineY + 5) + '" stroke="#8A9492" stroke-width="1"/>');
-    parts.push('<line x1="' + (rectX + rectW) + '" y1="' + (hLineY - 5) + '" x2="' + (rectX + rectW) + '" y2="' + (hLineY + 5) + '" stroke="#8A9492" stroke-width="1"/>');
-    parts.push('<text x="' + (rectX + rectW / 2) + '" y="' + (hLineY + 18) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6668">' + dWidth + ' mm</text>');
+    parts.push('<line x1="' + rectX + '" y1="' + hLineY + '" x2="' + (rectX + rectW) + '" y2="' + hLineY + '" stroke="#9BA3A6" stroke-width="1"/>');
+    parts.push('<line x1="' + rectX + '" y1="' + (hLineY - 5) + '" x2="' + rectX + '" y2="' + (hLineY + 5) + '" stroke="#9BA3A6" stroke-width="1"/>');
+    parts.push('<line x1="' + (rectX + rectW) + '" y1="' + (hLineY - 5) + '" x2="' + (rectX + rectW) + '" y2="' + (hLineY + 5) + '" stroke="#9BA3A6" stroke-width="1"/>');
+    parts.push('<text x="' + (rectX + rectW / 2) + '" y="' + (hLineY + 18) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#C9CDCC">' + dWidth + ' mm</text>');
 
     // vertical dimension (height)
-    parts.push('<line x1="' + vLineX + '" y1="' + rectY + '" x2="' + vLineX + '" y2="' + (rectY + rectH) + '" stroke="#8A9492" stroke-width="1"/>');
-    parts.push('<line x1="' + (vLineX - 5) + '" y1="' + rectY + '" x2="' + (vLineX + 5) + '" y2="' + rectY + '" stroke="#8A9492" stroke-width="1"/>');
-    parts.push('<line x1="' + (vLineX - 5) + '" y1="' + (rectY + rectH) + '" x2="' + (vLineX + 5) + '" y2="' + (rectY + rectH) + '" stroke="#8A9492" stroke-width="1"/>');
-    parts.push('<text x="' + (vLineX - 10) + '" y="' + (rectY + rectH / 2) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6668" transform="rotate(-90 ' + (vLineX - 10) + ' ' + (rectY + rectH / 2) + ')">' + dHeight + ' mm</text>');
+    parts.push('<line x1="' + vLineX + '" y1="' + rectY + '" x2="' + vLineX + '" y2="' + (rectY + rectH) + '" stroke="#9BA3A6" stroke-width="1"/>');
+    parts.push('<line x1="' + (vLineX - 5) + '" y1="' + rectY + '" x2="' + (vLineX + 5) + '" y2="' + rectY + '" stroke="#9BA3A6" stroke-width="1"/>');
+    parts.push('<line x1="' + (vLineX - 5) + '" y1="' + (rectY + rectH) + '" x2="' + (vLineX + 5) + '" y2="' + (rectY + rectH) + '" stroke="#9BA3A6" stroke-width="1"/>');
+    parts.push('<text x="' + (vLineX - 10) + '" y="' + (rectY + rectH / 2) + '" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#C9CDCC" transform="rotate(-90 ' + (vLineX - 10) + ' ' + (rectY + rectH / 2) + ')">' + dHeight + ' mm</text>');
 
     parts.push('</svg>');
     return parts.join("");
